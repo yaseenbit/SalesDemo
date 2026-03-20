@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { EditableGridTable, type EditableGridColumn } from '../components/table/EditableGridTable';
+import { SearchableTable, type SearchableTableColumn } from '../components/SearchableTable';
 import { productCatalog } from '../data/catalog';
 import styles from './TableControlDemoPage.module.css';
 
@@ -70,6 +71,19 @@ const isDemoRowEmpty = (row: DemoRow) => {
 export const TableControlDemoPage = () => {
   const [rows, setRows] = useState<DemoRow[]>(initialRows);
   const [triggerColumn, setTriggerColumn] = useState<TriggerColumnKey>('description');
+
+  const largeProductCatalog = useMemo(() => {
+    return Array.from({ length: 1000 }, (_, index) => {
+      const source = productCatalog[index % productCatalog.length];
+      const sequence = String(index + 1).padStart(4, '0');
+
+      return {
+        barcode: sequence,
+        name: `${source.name} Variant ${sequence}`,
+        unitPrice: Number((source.unitPrice + (index % 15) * 0.37).toFixed(2)),
+      };
+    });
+  }, []);
 
   const columns = useMemo<EditableGridColumn<DemoRow>[]>(() => {
     const skuColumn: EditableGridColumn<DemoRow> =
@@ -198,6 +212,28 @@ export const TableControlDemoPage = () => {
           createRow={() => ({ id: crypto.randomUUID(), sku: '', description: '', quantity: 0, unitPrice: 0 })}
           isRowEmpty={isDemoRowEmpty}
           rowKey={(row) => row.id}
+        />
+      </div>
+
+      <div className={`form-card ${styles.tableCard}`} style={{ marginTop: '40px' }}>
+        <div className="page-header">
+          <p className="eyebrow">Searchable Table Demo</p>
+          <h3>Live search through 1000 catalog items</h3>
+        </div>
+
+        <SearchableTable
+          items={largeProductCatalog}
+          columns={
+            [
+              { key: 'barcode', label: 'Barcode', width: '150px' },
+              { key: 'name', label: 'Product Name' },
+              { key: 'unitPrice', label: 'Unit Price', width: '120px', render: (value) => `$${value.toFixed(2)}` },
+            ] as SearchableTableColumn<typeof productCatalog[0]>[]
+          }
+          searchFields={['barcode', 'name']}
+          placeholder="Search by barcode or product name..."
+          emptyMessage="No products found matching your search."
+          onItemSelect={(item) => console.log('Selected item:', item)}
         />
       </div>
     </section>

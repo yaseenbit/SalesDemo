@@ -193,7 +193,7 @@ export const EditableGridTable = <TRow extends object>({
   rowKey,
   onCellKeyDown,
 }: EditableGridTableProps<TRow>) => {
-  const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const inputRefs = useRef<Map<string, HTMLElement>>(new Map());
   const pendingFocusRef = useRef<{ rowIndex: number; columnIndex: number } | null>(null);
   const didInitRowCheckRef = useRef(false);
   const messageCloseButtonRef = useRef<HTMLButtonElement>(null);
@@ -263,8 +263,46 @@ export const EditableGridTable = <TRow extends object>({
     const safeRow = clamp(rowIndex, 0, rowMax);
     const safeColumn = clamp(columnIndex, 0, columnMax);
     const ref = inputRefs.current.get(getRefKey(safeRow, safeColumn));
-    ref?.focus();
-    ref?.select();
+
+    if (!ref) {
+      return;
+    }
+
+    if (ref instanceof HTMLInputElement) {
+      ref.focus();
+      ref.select();
+      return;
+    }
+
+    const nestedInput = ref.querySelector('input');
+    if (nestedInput instanceof HTMLInputElement) {
+      nestedInput.focus();
+      nestedInput.select();
+    }
+  };
+
+  const shouldMoveHorizontally = (
+    event: KeyboardEvent<HTMLInputElement>,
+    direction: 'left' | 'right',
+    readOnly: boolean,
+  ) => {
+    if (readOnly) {
+      return true;
+    }
+
+    const target = event.currentTarget;
+    const selectionStart = target.selectionStart;
+    const selectionEnd = target.selectionEnd;
+
+    if (selectionStart === null || selectionEnd === null || selectionStart !== selectionEnd) {
+      return false;
+    }
+
+    if (direction === 'left') {
+      return selectionStart === 0;
+    }
+
+    return selectionEnd === target.value.length;
   };
 
   useEffect(() => {
@@ -545,6 +583,22 @@ export const EditableGridTable = <TRow extends object>({
       return;
     }
 
+    const readOnlyCell =
+      !isEditableColumn(column) ||
+      (isPopupColumn(column) && (column.popup.triggerKey ?? 'space') === 'space');
+
+    if (event.key === 'ArrowLeft' && shouldMoveHorizontally(event, 'left', readOnlyCell)) {
+      event.preventDefault();
+      focusCell(rowIndex, columnIndex - 1);
+      return;
+    }
+
+    if (event.key === 'ArrowRight' && shouldMoveHorizontally(event, 'right', readOnlyCell)) {
+      event.preventDefault();
+      focusCell(rowIndex, columnIndex + 1);
+      return;
+    }
+
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       focusCell(rowIndex + 1, columnIndex);
@@ -611,7 +665,17 @@ export const EditableGridTable = <TRow extends object>({
 
                     return (
                       <td key={`${column.key}-${rowIndex}`}>
-                        <div className={styles.comboboxCell}>
+                        <div
+                          ref={(element) => {
+                            const refKey = getRefKey(rowIndex, columnIndex);
+                            if (element) {
+                              inputRefs.current.set(refKey, element);
+                            } else {
+                              inputRefs.current.delete(refKey);
+                            }
+                          }}
+                          className={styles.comboboxCell}
+                        >
                           <Typeahead
                             id={`combobox-${rowIndex}-${columnIndex}`}
                             options={column.options as any}
@@ -662,6 +726,8 @@ export const EditableGridTable = <TRow extends object>({
                             }}
                             inputProps={{
                               className: styles.cellInput,
+                              onKeyDown: (event: KeyboardEvent<HTMLInputElement>) =>
+                                handleCellKeyDown(event, rowIndex, columnIndex),
                             }}
                             placeholder={column.placeholder}
                             positionFixed

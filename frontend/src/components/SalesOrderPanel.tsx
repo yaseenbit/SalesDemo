@@ -1,13 +1,18 @@
 import { useMemo, useState } from 'react';
 import { productCatalog, brandCatalog } from '../data/catalog';
 import type { Customer, OrderStatus, SalesOrderDraft, SalesOrderItem } from '../types';
-import { EditableGridTable, type EditableGridColumn } from './table/EditableGridTable';
+import {
+  EditableGridTable,
+  type EditableGridCellKeyDownHandler,
+  type EditableGridColumn,
+} from './table/EditableGridTable';
 import styles from './SalesOrderPanel.module.css';
 
 interface SalesOrderPanelProps {
   customers: Customer[];
   draft: SalesOrderDraft;
   onDraftChange: (draft: SalesOrderDraft) => void;
+  itemsAdded?: () => void;
 }
 
 type PickerTriggerColumnKey =
@@ -78,8 +83,15 @@ const isItemEmpty = (item: SalesOrderItem) => {
   );
 };
 
-export const SalesOrderPanel = ({ customers, draft, onDraftChange }: SalesOrderPanelProps) => {
+export const SalesOrderPanel = ({ customers, draft, onDraftChange, itemsAdded }: SalesOrderPanelProps) => {
   const [pickerTriggerColumn, setPickerTriggerColumn] = useState<PickerTriggerColumnKey>('description');
+
+  const isDeleteRowShortcut = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    return (
+      (event.metaKey && event.key === 'Backspace') ||
+      (event.ctrlKey && event.shiftKey && (event.key === 'Backspace' || event.key === 'Delete'))
+    );
+  };
 
   const updateItems = (items: SalesOrderItem[]) => {
     onDraftChange({
@@ -94,6 +106,29 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange }: SalesOrderP
 
   const removeItem = (itemId: string) => {
     updateItems(draft.items.filter((item) => item.id !== itemId));
+  };
+
+  const handleGridCellKeyDown: EditableGridCellKeyDownHandler<SalesOrderItem> = (context) => {
+    if (!isDeleteRowShortcut(context.event)) {
+      return undefined;
+    }
+
+    if (isItemEmpty(context.row)) {
+      return { type: 'stay' };
+    }
+
+    const nextRows =
+      context.rows.length === 1
+        ? [createEmptyItem()]
+        : context.rows.filter((_, currentIndex) => currentIndex !== context.rowIndex);
+
+    updateItems(nextRows);
+
+    return {
+      type: 'focusAfterChange' as const,
+      rowIndex: context.rows.length === 1 ? 0 : Math.min(context.rowIndex, nextRows.length - 1),
+      columnIndex: 0,
+    };
   };
 
   const columns = useMemo<EditableGridColumn<SalesOrderItem>[]>(() => {
@@ -158,6 +193,17 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange }: SalesOrderP
             allowedCharacters: /[\d+\-]/,
             onCellKeyDown: (context) => {
               if (context.event.key === 'Enter') {
+                const attemptedBarcode = context.row.sku.trim();
+
+                if (
+                  attemptedBarcode === '' &&
+                  context.rowIndex === context.rows.length - 1 &&
+                  context.columnIndex === 0
+                ) {
+                  itemsAdded?.();
+                  return { type: 'stay' };
+                }
+
                 // Search catalog by barcode (SKU)
                 const matchedProduct = productCatalog.find(
                   (product) => product.barcode.toLowerCase() === context.row.sku.toLowerCase(),
@@ -186,7 +232,6 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange }: SalesOrderP
                   };
                 }
 
-                const attemptedBarcode = context.row.sku.trim();
                 return {
                   type: 'showMessage',
                   title: 'Barcode not found',
@@ -304,7 +349,7 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange }: SalesOrderP
       discountColumn,
       lineTotalColumn,
     ];
-  }, [pickerTriggerColumn]);
+  }, [itemsAdded, pickerTriggerColumn]);
 
   const handleHeaderChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = event.target;
@@ -324,67 +369,16 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange }: SalesOrderP
       <div className="panel__header">
         <div>
           <p className="eyebrow">Sales order</p>
-          <h2>Create and refine orders</h2>
         </div>
-        <span className="pill">No backend · saved in your browser</span>
       </div>
 
       <div className={styles.orderShell}>
         <div className="order-main">
-          <div className="form-grid form-grid--three">
-            <label className="field">
-              <span>Order number</span>
-              <input name="orderNumber" value={draft.orderNumber} onChange={handleHeaderChange} />
-            </label>
-            <label className="field">
-              <span>Order date</span>
-              <input name="orderDate" type="date" value={draft.orderDate} onChange={handleHeaderChange} />
-            </label>
-            <label className="field">
-              <span>Delivery date</span>
-              <input name="deliveryDate" type="date" value={draft.deliveryDate} onChange={handleHeaderChange} />
-            </label>
-            <label className="field field--full">
-              <span>Customer</span>
-              <select name="customerId" value={draft.customerId} onChange={handleHeaderChange}>
-                <option value="">Choose a customer</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.company} · {customer.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Status</span>
-              <select name="status" value={draft.status} onChange={handleHeaderChange}>
-                {(['Draft', 'Pending Approval', 'Ready to Ship'] as OrderStatus[]).map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field field--full">
-              <span>Order notes</span>
-              <textarea name="notes" rows={4} value={draft.notes} onChange={handleHeaderChange} />
-            </label>
-          </div>
+        
 
           <div className={styles.lineItems}>
             <div className="line-items__header">
-              <div>
-                <h3>Items</h3>
-                <p>Add, adjust, and review each line before checkout.</p>
-              </div>
-              <button className="button button--secondary" type="button" onClick={addItem}>
-                Add item
-              </button>
             </div>
-
-            <p className={styles.tableHint}>
-              Enter moves to next cell. Press Space on the selected trigger column to open the item picker.
-            </p>
             <div className={styles.controlsRow}>
               <label className="field">
                 <span>Popup trigger column</span>
@@ -406,6 +400,7 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange }: SalesOrderP
                 rows={draft.items}
                 columns={columns}
                 onRowsChange={updateItems}
+                onCellKeyDown={handleGridCellKeyDown}
                 createRow={() => createEmptyItem()}
                 isRowEmpty={isItemEmpty}
                 rowKey={(row) => row.id}

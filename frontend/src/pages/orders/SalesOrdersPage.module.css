@@ -1,0 +1,36 @@
+.doneOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(18, 24, 56, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.doneDialog {
+  width: min(420px, 92vw);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+.doneTitle {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.doneMessage {
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.doneActions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
