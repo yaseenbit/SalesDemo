@@ -172,6 +172,9 @@ interface EditableGridTableProps<TRow extends object> {
   ariaLabel?: string;
   rowKey?: (row: TRow, rowIndex: number) => string;
   onCellKeyDown?: EditableGridCellKeyDownHandler<TRow>;
+  focusRequestToken?: number;
+  focusRequestRowIndex?: number;
+  focusRequestColumnIndex?: number;
 }
 
 type PopupState = {
@@ -230,6 +233,9 @@ export const EditableGridTable = <TRow extends object>({
   ariaLabel = 'Editable grid table',
   rowKey,
   onCellKeyDown,
+  focusRequestToken,
+  focusRequestRowIndex = 0,
+  focusRequestColumnIndex = 0,
 }: EditableGridTableProps<TRow>) => {
   const inputRefs = useRef<Map<string, HTMLElement>>(new Map());
   const pendingFocusRef = useRef<{ rowIndex: number; columnIndex: number } | null>(null);
@@ -353,6 +359,14 @@ export const EditableGridTable = <TRow extends object>({
     pendingFocusRef.current = null;
     focusCell(target.rowIndex, target.columnIndex);
   }, [rows, columns]);
+
+  useEffect(() => {
+    if (focusRequestToken === undefined) {
+      return;
+    }
+
+    focusCell(focusRequestRowIndex, focusRequestColumnIndex);
+  }, [focusRequestColumnIndex, focusRequestRowIndex, focusRequestToken]);
 
   useEffect(() => {
     if (!popupState) {

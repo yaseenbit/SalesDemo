@@ -12,6 +12,7 @@ interface SalesOrderPanelProps {
   draft: SalesOrderDraft;
   onDraftChange: (draft: SalesOrderDraft) => void;
   itemsAdded?: () => void;
+  gridFocusRequestToken?: number;
 }
 
 type PickerTriggerColumnKey =
@@ -100,7 +101,7 @@ const isItemEmpty = (item: SalesOrderItem | undefined) => {
   );
 };
 
-export const SalesOrderPanel = ({ draft, onDraftChange, itemsAdded }: SalesOrderPanelProps) => {
+export const SalesOrderPanel = ({ draft, onDraftChange, itemsAdded, gridFocusRequestToken }: SalesOrderPanelProps) => {
   const [pickerTriggerColumn, setPickerTriggerColumn] = useState<PickerTriggerColumnKey>('description');
 
   const isDeleteRowShortcut = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -478,6 +479,9 @@ export const SalesOrderPanel = ({ draft, onDraftChange, itemsAdded }: SalesOrder
                 createRow={() => createEmptyItem()}
                 isRowEmpty={isItemEmpty}
                 rowKey={(row) => row.id}
+                focusRequestToken={gridFocusRequestToken}
+                focusRequestRowIndex={0}
+                focusRequestColumnIndex={0}
               />
             </div>
 

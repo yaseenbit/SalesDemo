@@ -12,6 +12,7 @@ interface SalesOrdersPageProps {
 
 export const SalesOrdersPage = ({ customers, draft, onDraftChange }: SalesOrdersPageProps) => {
   const [isItemsAddedDialogOpen, setIsItemsAddedDialogOpen] = useState(false);
+  const [gridFocusRequestToken, setGridFocusRequestToken] = useState<number>();
 
   const customerColumns = useMemo<SearchableTableColumn<Customer>[]>(
     () => [
@@ -69,6 +70,7 @@ export const SalesOrdersPage = ({ customers, draft, onDraftChange }: SalesOrders
                       ...draft,
                       customerId: customer.id,
                     });
+                    setGridFocusRequestToken(Date.now());
                   }}
                 />
               </div>
@@ -121,6 +123,7 @@ export const SalesOrdersPage = ({ customers, draft, onDraftChange }: SalesOrders
         draft={draft}
         onDraftChange={onDraftChange}
         itemsAdded={handleItemsAdded}
+        gridFocusRequestToken={gridFocusRequestToken}
       />
 
       {isItemsAddedDialogOpen ? (
