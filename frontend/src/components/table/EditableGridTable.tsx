@@ -364,8 +364,9 @@ export const EditableGridTable = <TRow extends object>({
     if (focusRequestToken === undefined) {
       return;
     }
+    debugger;
 
-    focusCell(focusRequestRowIndex, focusRequestColumnIndex);
+    focusCell(rows.length -1, focusRequestColumnIndex);
   }, [focusRequestColumnIndex, focusRequestRowIndex, focusRequestToken]);
 
   useEffect(() => {

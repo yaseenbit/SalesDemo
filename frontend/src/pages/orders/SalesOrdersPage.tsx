@@ -40,7 +40,12 @@ export const SalesOrdersPage = ({ customers, draft, onDraftChange }: SalesOrders
   };
 
   return (
-    <section className="page-section">
+      <section className="panel panel--stretch">
+      <div className="panel__header">
+        <div>
+          <p className="eyebrow">Sales order</p>
+        </div>
+      </div>
       <div className={`form-card ${styles.orderDetailsCompact}`}>
         <div className={styles.detailsLayout}>
           <div className={styles.leftColumn}>
