@@ -1,0 +1,53 @@
+.brandSearchContainer {
+  width: 100%;
+  height: 100%;
+}
+
+.brandSearchContainer :global(.ui.search) {
+  width: 100%;
+}
+
+.brandSearchContainer :global(.ui.search > .prompt) {
+  border: none;
+  padding: 9px 10px;
+  border-radius: 0;
+}
+
+.brandSearchContainer :global(.ui.search > .prompt:focus) {
+  outline: 2px solid rgba(92, 108, 255, 0.32);
+  outline-offset: -2px;
+  background: #f9faff;
+}
+
+.brandSearchContainer :global(.ui.search > .results) {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0;
+  max-height: 300px;
+  z-index: 100;
+  border: 1px solid #d4d4d5;
+  border-top: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.brandSearchContainer :global(.ui.search > .results .result) {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e8e8e8;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.brandSearchContainer :global(.ui.search > .results .result:hover) {
+  background: rgba(92, 108, 255, 0.08);
+}
+
+.brandSearchContainer :global(.ui.search > .results .result.active) {
+  background: rgba(92, 108, 255, 0.14);
+}
+
+.searchInput {
+  width: 100%;
+}
+

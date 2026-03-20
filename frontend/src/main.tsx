@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import 'semantic-ui-css/semantic.min.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/layout.css';

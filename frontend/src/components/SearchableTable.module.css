@@ -5,6 +5,42 @@
   width: 100%;
 }
 
+.searchableTableContainer.compact {
+  gap: 0;
+  position: relative;
+}
+
+.searchableTableContainer.compact .searchBox {
+  position: relative;
+  z-index: 101;
+}
+
+.searchableTableContainer.compact .searchInput {
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  padding: 9px 10px;
+}
+
+.searchableTableContainer.compact .searchInput:focus {
+  box-shadow: none;
+  outline: 2px solid rgba(92, 108, 255, 0.32);
+  outline-offset: -2px;
+  background: #f9faff;
+}
+
+.searchableTableContainer.compact .tableWrapper {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 0;
+  right: 0;
+  margin-top: 0;
+  max-height: 300px;
+  z-index: 100;
+  box-shadow: var(--shadow);
+  border-radius: 6px;
+}
+
 .searchBox {
   display: flex;
   align-items: center;

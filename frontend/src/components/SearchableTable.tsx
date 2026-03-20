@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styles from './SearchableTable.module.css';
 
 export interface SearchableTableColumn<TItem extends object> {
@@ -13,9 +13,15 @@ export interface SearchableTableProps<TItem extends object> {
   columns: SearchableTableColumn<TItem>[];
   searchFields: string[];
   displayField?: string;
+  value?: string;
   placeholder?: string;
   emptyMessage?: string;
   maxResults?: number;
+  compact?: boolean;
+  showHeaders?: boolean;
+  showResultCount?: boolean;
+  onQueryChange?: (query: string) => void;
+  onInputKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onItemSelect?: (item: TItem) => void;
 }
 
@@ -24,14 +30,28 @@ export const SearchableTable = <TItem extends object>({
   columns,
   searchFields,
   displayField,
+  value,
   placeholder = 'Search items...',
   emptyMessage = 'No items found.',
   maxResults = 50,
+  compact = false,
+  showHeaders = !compact,
+  showResultCount = true,
+  onQueryChange,
+  onInputKeyDown,
   onItemSelect,
 }: SearchableTableProps<TItem>) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(value ?? '');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (value === undefined) {
+      return;
+    }
+
+    setSearchQuery(value);
+  }, [value]);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -59,14 +79,16 @@ export const SearchableTable = <TItem extends object>({
   };
 
   const selectItem = (item: TItem) => {
-    setSearchQuery(getDisplayText(item));
+    const nextText = getDisplayText(item);
+    setSearchQuery(nextText);
+    onQueryChange?.(nextText);
     setIsDropdownOpen(false);
     setActiveIndex(0);
     onItemSelect?.(item);
   };
 
   return (
-    <div className={styles.searchableTableContainer}>
+    <div className={`${styles.searchableTableContainer} ${compact ? styles.compact : ''}`}>
       <div className={styles.searchBox}>
         <input
           type="text"
@@ -74,7 +96,9 @@ export const SearchableTable = <TItem extends object>({
           placeholder={placeholder}
           value={searchQuery}
           onChange={(e) => {
-            setSearchQuery(e.target.value);
+            const nextValue = e.target.value;
+            setSearchQuery(nextValue);
+            onQueryChange?.(nextValue);
             setIsDropdownOpen(true);
             setActiveIndex(0);
           }}
@@ -84,6 +108,12 @@ export const SearchableTable = <TItem extends object>({
             window.setTimeout(() => setIsDropdownOpen(false), 100);
           }}
           onKeyDown={(e) => {
+            onInputKeyDown?.(e);
+
+            if (e.defaultPrevented) {
+              return;
+            }
+
             if (!isDropdownOpen) {
               if (filteredItems.length === 0) {
                 return;
@@ -143,6 +173,7 @@ export const SearchableTable = <TItem extends object>({
       {isDropdownOpen ? (
         <div className={styles.tableWrapper}>
           <table className={styles.resultsTable}>
+            {showHeaders && (
             <thead>
               <tr>
                 {columns.map((column) => (
@@ -152,6 +183,7 @@ export const SearchableTable = <TItem extends object>({
                 ))}
               </tr>
             </thead>
+            )}
             <tbody>
               {filteredItems.map((item, index) => (
                 <tr
@@ -183,7 +215,7 @@ export const SearchableTable = <TItem extends object>({
         </div>
       ) : null}
 
-      {isDropdownOpen && filteredItems.length > 0 && (
+      {showResultCount && isDropdownOpen && filteredItems.length > 0 && (
         <div className={styles.resultCount}>
           Showing {filteredItems.length}
           {items.length > filteredItems.length && ' of ' + items.length} items

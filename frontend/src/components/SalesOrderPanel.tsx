@@ -54,6 +54,21 @@ const popupConfig = {
   emptyMessage: 'Try another search value.',
 };
 
+const brandPopupConfig = {
+  title: 'Select brand',
+  triggerKey: 'focus' as const,
+  shouldOpenOnFocus: (row: SalesOrderItem) => !isItemEmpty(row) && row.brand.trim() === '',
+  shouldOpenOnSpace: (row: SalesOrderItem) => row.brand.trim() !== '',
+  filterPlaceholder: 'Type brand name',
+  options: brandCatalog,
+  optionIdKey: 'id' as const,
+  filterKeys: ['name'] as const,
+  displayFields: [{ key: 'name' as const, label: 'Brand' }],
+  rowMappings: [{ rowField: 'brand' as const, optionField: 'name' as const }],
+  appendRowAfterSelect: false,
+  emptyMessage: 'Try another brand name.',
+};
+
 const createEmptyItem = (): SalesOrderItem => ({
   id: crypto.randomUUID(),
   sku: '',
@@ -72,14 +87,17 @@ const clampNumber = (value: number, min = 0) => {
   return Math.max(min, value);
 };
 
-const isItemEmpty = (item: SalesOrderItem) => {
+const isItemEmpty = (item: SalesOrderItem | undefined) => {
+  if (!item) {
+    return true;
+  }
   return (
-    item.sku.trim() === '' &&
-    item.description.trim() === '' &&
-    item.brand.trim() === '' &&
-    item.quantity <= 1 &&
-    item.unitPrice === 0 &&
-    item.discount === 0
+    (item.sku?.trim?.() ?? '').trim() === '' &&
+    (item.description?.trim?.() ?? '').trim() === '' &&
+    (item.brand?.trim?.() ?? '').trim() === '' &&
+    (!item.quantity || item.quantity <= 1) &&
+    (!item.unitPrice || item.unitPrice === 0) &&
+    (!item.discount || item.discount === 0)
   );
 };
 
@@ -155,19 +173,16 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange, itemsAdded }:
             onValueChange: (row, nextValue) => ({ ...row, description: nextValue }),
           };
 
-    // Brand column - always combobox
-    const brandComboboxColumn: EditableGridColumn<SalesOrderItem> = {
-      kind: 'combobox',
+    // Brand column - popup selector
+    const brandSearchColumn: EditableGridColumn<SalesOrderItem> = {
+      kind: 'popup',
       key: 'brand',
       header: 'Brand',
       width: '150px',
-      placeholder: 'Select brand...',
+      placeholder: 'Search brand...',
       getValue: (row) => row.brand,
       onValueChange: (row, nextValue) => ({ ...row, brand: nextValue }),
-      options: brandCatalog,
-      optionIdKey: 'id',
-      displayField: 'name',
-      filterField: 'name',
+      popup: brandPopupConfig,
     };
 
     const skuColumn: EditableGridColumn<SalesOrderItem> =
@@ -182,67 +197,137 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange, itemsAdded }:
             onValueChange: (row, nextValue) => ({ ...row, sku: nextValue.trim().toUpperCase() }),
             popup: popupConfig,
           }
-        : {
-            kind: 'barcode',
-            key: 'sku',
-            header: 'SKU',
-            width: '140px',
-            placeholder: 'SKU-0001',
-            getValue: (row) => row.sku,
-            onValueChange: (row, nextValue) => ({ ...row, sku: nextValue.trim().toUpperCase() }),
-            allowedCharacters: /[\d+\-]/,
-            onCellKeyDown: (context) => {
-              if (context.event.key === 'Enter') {
-                const attemptedBarcode = context.row.sku.trim();
+          : {
+              kind: 'barcode',
+              key: 'sku',
+              header: 'SKU',
+              width: '140px',
+              placeholder: 'SKU-0001',
+              getValue: (row) => row.sku,
+              onValueChange: (row, nextValue) => ({ ...row, sku: nextValue.trim().toUpperCase() }),
+              allowedCharacters: /[\d+\-]/,
+              onCellKeyDown: (context) => {
+                  if (context.event.key === 'Enter') {
+                      const rawInput = context.row.sku.trim();
 
-                if (
-                  attemptedBarcode === '' &&
-                  context.rowIndex === context.rows.length - 1 &&
-                  context.columnIndex === 0
-                ) {
-                  itemsAdded?.();
-                  return { type: 'stay' };
-                }
+                      // ── Quantity increment shortcut ──────────────────────────────
+                      // Typing "+N" in the SKU field increments the previous row's
+                      // quantity by N, then clears the field and stays on this row.
+                      const incrementMatch = rawInput.match(/^\+(\d+)$/);
+                      if (incrementMatch) {
+                          const incrementBy = parseInt(incrementMatch[1], 10);
+                          const prevRowIndex = context.rowIndex - 1;
+                          const prevRow = context.rows[prevRowIndex];
 
-                // Search catalog by barcode (SKU)
-                const matchedProduct = productCatalog.find(
-                  (product) => product.barcode.toLowerCase() === context.row.sku.toLowerCase(),
-                );
+                          if (prevRow && !isItemEmpty(prevRow)) {
+                              const updatedRows = context.rows.map((row, idx) => {
+                                  if (idx === prevRowIndex) {
+                                      return { ...row, quantity: row.quantity + incrementBy };
+                                  }
+                                  if (idx === context.rowIndex) {
+                                      return { ...row, sku: '' }; // clear the "+N" text
+                                  }
+                                  return row;
+                              });
+                              updateItems(updatedRows);
+                              return {
+                                  type: 'focusAfterChange' as const,
+                                  rowIndex: context.rowIndex,
+                                  columnIndex: 0,
+                              };
+                          }
+                      }
+                      // ─────────────────────────────────────────────────────────────
 
-                if (matchedProduct) {
-                  // Update current row with product details
-                  const updatedRow: SalesOrderItem = {
-                    ...context.row,
-                    sku: matchedProduct.barcode,
-                    description: matchedProduct.name,
-                    unitPrice: matchedProduct.unitPrice,
-                  };
+                      if (
+                          rawInput === '' &&
+                          context.rowIndex === context.rows.length - 1 &&
+                          context.columnIndex === 0
+                      ) {
+                          itemsAdded?.();
+                          return { type: 'stay' };
+                      }
 
-                  const populatedRows = context.rows.map((row, idx) =>
-                    idx === context.rowIndex ? updatedRow : row,
-                  );
+                      // Search catalog by barcode (SKU)
+                      const matchedProduct = productCatalog.find(
+                          (product) => product.barcode.toLowerCase() === context.row.sku.toLowerCase(),
+                      );
 
-                  const nextRows = [...populatedRows, createEmptyItem()];
-                  updateItems(nextRows);
+                      if (matchedProduct) {
+                          // ── Duplicate detection ───────────────────────────────────────
+                          // If the same barcode is already present in another row,
+                          // increment that row's quantity instead of adding a duplicate.
+                          const duplicateRowIndex = context.rows.findIndex(
+                              (row, idx) =>
+                                  idx !== context.rowIndex &&
+                                  row.sku.toLowerCase() === matchedProduct.barcode.toLowerCase(),
+                          );
 
-                  return {
-                    type: 'focusAfterChange',
-                    rowIndex: nextRows.length - 1,
-                    columnIndex: 0,
-                  };
-                }
+                          if (duplicateRowIndex >= 0) {
+                              const updatedRows = context.rows.map((row, idx) => {
+                                  if (idx === duplicateRowIndex) {
+                                      return { ...row, quantity: row.quantity + 1 };
+                                  }
+                                  if (idx === context.rowIndex) {
+                                      return { ...row, sku: '' }; // clear the scanned barcode
+                                  }
+                                  return row;
+                              });
+                              updateItems(updatedRows);
+                              return {
+                                  type: 'focusAfterChange' as const,
+                                  rowIndex: context.rowIndex,
+                                  columnIndex: 0,
+                              };
+                          }
+                          // ─────────────────────────────────────────────────────────────
 
-                return {
-                  type: 'showMessage',
-                  title: 'Barcode not found',
-                  message: attemptedBarcode
-                    ? `Item not found for barcode: ${attemptedBarcode}`
-                    : 'Please enter a barcode before searching.',
-                  focusRowIndex: context.rowIndex,
-                  focusColumnIndex: context.columnIndex,
-                };
-              }
-            },
+                          if (matchedProduct.name === context.row.description) {
+                              return {
+                                  type: 'focus',
+                                  rowIndex: context.rows.length - 1,
+                                  columnIndex: 0,
+                              };
+                          }
+
+                          // Update current row with product details
+                          const updatedRow: SalesOrderItem = {
+                              ...context.row,
+                              sku: matchedProduct.barcode,
+                              description: matchedProduct.name,
+                              unitPrice: matchedProduct.unitPrice,
+                          };
+
+                          const populatedRows = context.rows.map((row, idx) =>
+                              idx === context.rowIndex ? updatedRow : row,
+                          );
+
+                          const nextRows = [...populatedRows];
+                          if (context.rowIndex === context.rows.length - 1) {
+                              nextRows.push(createEmptyItem());
+                              updateItems(nextRows);
+                          } else {
+                              updateItems(nextRows);
+                          }
+
+                          return {
+                              type: 'focusAfterChange',
+                              rowIndex: nextRows.length - 1,
+                              columnIndex: 0,
+                          };
+                      }
+
+                      return {
+                          type: 'showMessage',
+                          title: 'Barcode not found',
+                          message: rawInput
+                              ? `Item not found for barcode: ${rawInput}`
+                              : 'Please enter a barcode before searching.',
+                          focusRowIndex: context.rowIndex,
+                          focusColumnIndex: context.columnIndex,
+                      };
+                  }
+              },
           };
 
     // ...existing code...
@@ -343,7 +428,7 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange, itemsAdded }:
     return [
       skuColumn,
       descriptionColumn,
-      brandComboboxColumn,
+      brandSearchColumn,
       quantityColumn,
       unitPriceColumn,
       discountColumn,

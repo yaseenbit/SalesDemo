@@ -2,6 +2,7 @@ import type { HTMLInputTypeAttribute, KeyboardEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
+import { SearchableTable, type SearchableTableColumn } from '../SearchableTable';
 import styles from './EditableGridTable.module.css';
 
 export type CellMoveAction =
@@ -74,7 +75,9 @@ interface PopupRowMapping<TRow extends object, TOption extends PopupOptionRecord
 
 interface EditableGridPopupConfig<TRow extends object, TOption extends PopupOptionRecord> {
   title: string;
-  triggerKey?: 'space';
+  triggerKey?: 'space' | 'focus';
+  shouldOpenOnFocus?: (row: TRow, rowIndex: number) => boolean;
+  shouldOpenOnSpace?: (row: TRow, rowIndex: number) => boolean;
   filterPlaceholder?: string;
   options: TOption[];
   optionIdKey: string;
@@ -125,13 +128,40 @@ interface EditableGridComboboxColumn<TRow extends object, TOption extends PopupO
   rowMappings?: readonly ComboboxRowMapping<TRow, TOption>[];
 }
 
+interface EditableGridSearchColumn<TRow extends object, TOption extends PopupOptionRecord = PopupOptionRecord>
+  extends EditableGridBaseColumn<TRow> {
+  kind: 'search';
+  onValueChange: (row: TRow, nextValue: string, rowIndex: number) => TRow;
+  onCellKeyDown?: EditableGridCellKeyDownHandler<TRow>;
+  items: TOption[];
+  searchColumns: SearchableTableColumn<TOption>[];
+  searchFields: string[];
+  displayField: string;
+  emptyMessage?: string;
+  maxResults?: number;
+  rowMappings?: readonly ComboboxRowMapping<TRow, TOption>[];
+}
+
+interface EditableGridBrandSearchColumn<TRow extends object> extends EditableGridBaseColumn<TRow> {
+  kind: 'brand-search';
+  onValueChange: (row: TRow, nextValue: string, rowIndex: number) => TRow;
+  onCellKeyDown?: EditableGridCellKeyDownHandler<TRow>;
+  renderComponent: React.ComponentType<{
+    value: string;
+    onChange: (value: string) => void;
+    onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  }>;
+}
+
 export type EditableGridColumn<TRow extends object> =
   | EditableGridTextColumn<TRow>
   | EditableGridNumberColumn<TRow>
   | EditableGridDisplayColumn<TRow>
   | EditableGridPopupColumn<TRow, PopupOptionRecord>
   | EditableGridBarcodeColumn<TRow>
-  | EditableGridComboboxColumn<TRow, PopupOptionRecord>;
+  | EditableGridComboboxColumn<TRow, PopupOptionRecord>
+  | EditableGridSearchColumn<TRow, PopupOptionRecord>
+  | EditableGridBrandSearchColumn<TRow>;
 
 interface EditableGridTableProps<TRow extends object> {
   columns: EditableGridColumn<TRow>[];
@@ -171,6 +201,14 @@ const isComboboxColumn = <TRow extends object>(
   column: EditableGridColumn<TRow>,
 ): column is EditableGridComboboxColumn<TRow, PopupOptionRecord> => column.kind === 'combobox';
 
+const isSearchColumn = <TRow extends object>(
+  column: EditableGridColumn<TRow>,
+): column is EditableGridSearchColumn<TRow, PopupOptionRecord> => column.kind === 'search';
+
+const isBrandSearchColumn = <TRow extends object>(
+  column: EditableGridColumn<TRow>,
+): column is EditableGridBrandSearchColumn<TRow> => column.kind === 'brand-search';
+
 const isEditableColumn = <TRow extends object>(column: EditableGridColumn<TRow>) => {
   if (column.kind === 'display') {
     return false;
@@ -195,6 +233,7 @@ export const EditableGridTable = <TRow extends object>({
 }: EditableGridTableProps<TRow>) => {
   const inputRefs = useRef<Map<string, HTMLElement>>(new Map());
   const pendingFocusRef = useRef<{ rowIndex: number; columnIndex: number } | null>(null);
+  const skipNextFocusPopupOpenRef = useRef<{ rowIndex: number; columnIndex: number } | null>(null);
   const didInitRowCheckRef = useRef(false);
   const messageCloseButtonRef = useRef<HTMLButtonElement>(null);
   const [popupState, setPopupState] = useState<PopupState | null>(null);
@@ -211,7 +250,7 @@ export const EditableGridTable = <TRow extends object>({
       return;
     }
 
-    const hasEmptyRow = isRowEmpty ? rows.some((row) => isRowEmpty(row)) : rows.length > 0;
+    const hasEmptyRow = isRowEmpty ? rows.some((row) => row && isRowEmpty(row)) : rows.length > 0;
     if (hasEmptyRow) {
       return;
     }
@@ -358,6 +397,10 @@ export const EditableGridTable = <TRow extends object>({
   }, [messageDialogState]);
 
   const openPopup = (rowIndex: number, columnIndex: number) => {
+    if (popupState && popupState.rowIndex === rowIndex && popupState.columnIndex === columnIndex) {
+      return;
+    }
+
     const column = columns[columnIndex];
     if (!column || !isPopupColumn(column)) {
       return;
@@ -414,6 +457,12 @@ export const EditableGridTable = <TRow extends object>({
       focusRowIndex = nextRows.length - 1;
       // Requirement: focus must land on the new row first cell.
       focusColumnIndex = 0;
+    }
+
+    // For focus-triggered popup columns, the programmatic post-select focus would
+    // otherwise reopen the popup immediately. Skip exactly one focus-open cycle.
+    if ((activePopupColumn.popup.triggerKey ?? 'space') === 'focus') {
+      skipNextFocusPopupOpenRef.current = { rowIndex: focusRowIndex, columnIndex: focusColumnIndex };
     }
 
     pendingFocusRef.current = { rowIndex: focusRowIndex, columnIndex: focusColumnIndex };
@@ -570,7 +619,15 @@ export const EditableGridTable = <TRow extends object>({
       columns,
     };
 
-    if (isSpaceKey(event.key) && isPopupColumn(column) && (column.popup.triggerKey ?? 'space') === 'space') {
+    if (isSpaceKey(event.key) && isPopupColumn(column)) {
+      const triggerKey = column.popup.triggerKey ?? 'space';
+      const canOpenOnSpace =
+        triggerKey === 'space' || (triggerKey === 'focus' && column.popup.shouldOpenOnSpace?.(row, rowIndex));
+
+      if (!canOpenOnSpace) {
+        return;
+      }
+
       event.preventDefault();
       openPopup(rowIndex, columnIndex);
       return;
@@ -617,6 +674,32 @@ export const EditableGridTable = <TRow extends object>({
     }
   };
 
+  const handleCellFocus = (rowIndex: number, columnIndex: number) => {
+    const column = columns[columnIndex];
+    if (!column || !isPopupColumn(column)) {
+      return;
+    }
+
+    const row = rows[rowIndex];
+    if (!row) {
+      return;
+    }
+
+    if ((column.popup.triggerKey ?? 'space') === 'focus') {
+      if (column.popup.shouldOpenOnFocus && !column.popup.shouldOpenOnFocus(row, rowIndex)) {
+        return;
+      }
+
+      const skipTarget = skipNextFocusPopupOpenRef.current;
+      if (skipTarget && skipTarget.rowIndex === rowIndex && skipTarget.columnIndex === columnIndex) {
+        skipNextFocusPopupOpenRef.current = null;
+        return;
+      }
+
+      openPopup(rowIndex, columnIndex);
+    }
+  };
+
   return (
     <>
       <div className={styles.tableWrap}>
@@ -649,8 +732,9 @@ export const EditableGridTable = <TRow extends object>({
                   const inputMode = column.kind === 'number' ? 'numeric' : undefined;
 
                   // Check if this is a popup column with space trigger (should be read-only to prevent typing)
-                  const isSpaceTriggeredPopup = isPopupColumn(column) && (column.popup.triggerKey ?? 'space') === 'space';
-                  const shouldBeReadOnly = !editable || isSpaceTriggeredPopup;
+                  const popupTriggerKey = isPopupColumn(column) ? (column.popup.triggerKey ?? 'space') : null;
+                  const isPopupTriggeredCell = popupTriggerKey === 'space' || popupTriggerKey === 'focus';
+                  const shouldBeReadOnly = !editable || isPopupTriggeredCell;
 
                   // Render combobox column
                   if (isComboboxColumn(column)) {
@@ -738,6 +822,102 @@ export const EditableGridTable = <TRow extends object>({
                     );
                   }
 
+                  // Render searchable table column
+                  if (isSearchColumn(column)) {
+                    const searchValue = String(column.getValue(row, rowIndex));
+
+                    return (
+                      <td key={`${column.key}-${rowIndex}`}>
+                        <div
+                          ref={(element) => {
+                            const refKey = getRefKey(rowIndex, columnIndex);
+                            if (element) {
+                              inputRefs.current.set(refKey, element);
+                            } else {
+                              inputRefs.current.delete(refKey);
+                            }
+                          }}
+                        >
+                          <SearchableTable
+                            items={column.items}
+                            columns={column.searchColumns}
+                            searchFields={column.searchFields}
+                            displayField={column.displayField}
+                            placeholder={column.placeholder}
+                            emptyMessage={column.emptyMessage}
+                            maxResults={column.maxResults}
+                            value={searchValue}
+                            showResultCount={false}
+                            compact
+                            onQueryChange={(text) => {
+                              const nextRows = rows.map((currentRow, currentIndex) =>
+                                currentIndex === rowIndex
+                                  ? column.onValueChange(currentRow, text, currentIndex)
+                                  : currentRow,
+                              );
+                              onRowsChange(nextRows);
+                            }}
+                            onInputKeyDown={(event) => handleCellKeyDown(event, rowIndex, columnIndex)}
+                            onItemSelect={(selectedItem) => {
+                              const nextRow = { ...(row as object) } as Record<string, unknown>;
+
+                              if (column.rowMappings) {
+                                column.rowMappings.forEach(({ rowField, optionField }) => {
+                                  nextRow[rowField] = getPopupFieldValue(selectedItem, optionField) as TRow[FieldKey<TRow>];
+                                });
+                              } else {
+                                nextRow[column.key as FieldKey<TRow>] = getPopupFieldValue(
+                                  selectedItem,
+                                  column.displayField,
+                                ) as TRow[FieldKey<TRow>];
+                              }
+
+                              const nextRows = rows.map((currentRow, currentIndex) =>
+                                currentIndex === rowIndex ? (nextRow as TRow) : currentRow,
+                              );
+
+                              onRowsChange(nextRows);
+                              focusCell(rowIndex, columnIndex + 1);
+                            }}
+                          />
+                        </div>
+                      </td>
+                    );
+                  }
+
+                    // Render brand-search column (custom component)
+                    if (isBrandSearchColumn(column)) {
+                      const brandValue = String(column.getValue(row, rowIndex));
+
+                      return (
+                        <td key={`${column.key}-${rowIndex}`}>
+                          <div
+                            ref={(element) => {
+                              const refKey = getRefKey(rowIndex, columnIndex);
+                              if (element) {
+                                inputRefs.current.set(refKey, element);
+                              } else {
+                                inputRefs.current.delete(refKey);
+                              }
+                            }}
+                          >
+                            <column.renderComponent
+                              value={brandValue}
+                              onChange={(nextValue) => {
+                                const nextRows = rows.map((currentRow, currentIndex) =>
+                                  currentIndex === rowIndex
+                                    ? column.onValueChange(currentRow, nextValue, currentIndex)
+                                    : currentRow,
+                                );
+                                onRowsChange(nextRows);
+                              }}
+                              onKeyDown={(event) => handleCellKeyDown(event, rowIndex, columnIndex)}
+                            />
+                          </div>
+                        </td>
+                      );
+                    }
+
                   // Render standard input cell
                   return (
                     <td key={`${column.key}-${rowIndex}`}>
@@ -758,6 +938,7 @@ export const EditableGridTable = <TRow extends object>({
                         placeholder={column.placeholder}
                         readOnly={shouldBeReadOnly}
                         onChange={(event) => updateCellValue(rowIndex, columnIndex, event.target.value)}
+                        onFocus={() => handleCellFocus(rowIndex, columnIndex)}
                         onKeyDown={(event) => handleCellKeyDown(event, rowIndex, columnIndex)}
                       />
                     </td>
