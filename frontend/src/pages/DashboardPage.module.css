@@ -1,0 +1,46 @@
+.quickActions {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.quickAction {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  padding: 18px;
+}
+
+.quickAction h3 {
+  margin: 0 0 8px;
+}
+
+.quickAction p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.quickActionPurple {
+  border-top: 4px solid #8f5af7;
+}
+
+.quickActionBlue {
+  border-top: 4px solid #4d6bff;
+}
+
+.quickActionTeal {
+  border-top: 4px solid #17b5be;
+}
+
+.quickActionOrange {
+  border-top: 4px solid #f19c35;
+}
+
+@media (max-width: 1180px) {
+  .quickActions {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+}
+

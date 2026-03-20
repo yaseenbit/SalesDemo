@@ -1,0 +1,5 @@
+/* Page-level overrides only.
+   Shared primitives are defined in src/styles/components.css.
+   Prefer per-view CSS Modules for new view-specific styling.
+*/
+

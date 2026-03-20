@@ -1,0 +1,97 @@
+.tableHint {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.customerTableShell {
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.customerTableScroll {
+  max-height: calc(100vh - 270px);
+  min-height: 560px;
+  overflow: auto;
+}
+
+.customerTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.customerTable th,
+.customerTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.88rem;
+}
+
+.customerTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  background: #eef2ff;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.customerTable tbody tr {
+  cursor: default;
+}
+
+.customerTable tbody tr:hover {
+  background: rgba(92, 108, 255, 0.06);
+}
+
+.customerRowActive {
+  background: rgba(92, 108, 255, 0.12);
+}
+
+.customerTableEmpty {
+  margin: 18px 0;
+}
+
+.customerPagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+}
+
+.customerPagination span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.customerPagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1180px) {
+  .customerTableScroll {
+    min-height: 460px;
+    max-height: calc(100vh - 300px);
+  }
+}
+
+@media (max-width: 900px) {
+  .customerTable th,
+  .customerTable td {
+    font-size: 0.82rem;
+    padding: 8px;
+  }
+
+  .customerPagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+

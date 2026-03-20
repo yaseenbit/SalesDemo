@@ -1,0 +1,194 @@
+.posShell {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.7fr);
+  gap: 18px;
+}
+
+.posMain {
+  min-width: 0;
+}
+
+.posScanForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.posScanField input {
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 14px;
+}
+
+.posScanButton {
+  min-width: 92px;
+}
+
+.posScanNote {
+  margin: 10px 0 14px;
+  color: var(--muted);
+}
+
+.posItemsArea {
+  border: 1px solid var(--border);
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+}
+
+.posItemsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.posItemsHeader h3,
+.posItemsHeader p {
+  margin: 0;
+}
+
+.posItemsHeader p {
+  color: var(--muted);
+}
+
+.posItemList {
+  min-height: 380px;
+  max-height: 540px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.posItemRow {
+  border: 1px solid var(--border);
+  padding: 12px;
+  background: #ffffff;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.posItemRowRecent {
+  border-color: rgba(92, 108, 255, 0.7);
+  box-shadow: 0 0 0 3px rgba(92, 108, 255, 0.12);
+}
+
+.posItemCore {
+  min-width: 0;
+}
+
+.posItemCore strong {
+  display: block;
+}
+
+.posItemCore p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.posItemPricing {
+  text-align: right;
+}
+
+.posItemPricing span {
+  display: block;
+  color: var(--muted);
+}
+
+.posItemActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.posItemActions :global(.button--secondary) {
+  min-width: 36px;
+  padding: 8px 12px;
+}
+
+.posQty {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.posEmpty {
+  min-height: 220px;
+  display: grid;
+  place-content: center;
+}
+
+.posQuickCatalog {
+  margin-top: 14px;
+}
+
+.posQuickCatalog h3,
+.posQuickCatalog p {
+  margin: 0;
+}
+
+.posQuickCatalog p {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.posCatalogGrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.posCatalogItem {
+  text-align: left;
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.posCatalogItem span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.posSummary {
+  position: sticky;
+  top: 18px;
+  align-self: start;
+}
+
+@media (max-width: 1180px) {
+  .posShell {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .posSummary {
+    position: static;
+  }
+}
+
+@media (max-width: 900px) {
+  .posScanForm {
+    grid-template-columns: 1fr;
+  }
+
+  .posItemRow {
+    grid-template-columns: 1fr;
+  }
+
+  .posCatalogGrid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -1,0 +1,325 @@
+.tableWrap {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+}
+
+.table th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: #eef2ff;
+}
+
+.cellInput {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  padding: 9px 10px;
+  color: var(--text);
+}
+
+.cellInput:focus {
+  outline: 2px solid rgba(92, 108, 255, 0.32);
+  outline-offset: -2px;
+  background: #f9faff;
+}
+
+.cellInput[data-align='right'] {
+  text-align: right;
+}
+
+.cellInput[data-align='center'] {
+  text-align: center;
+}
+
+.pickerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 24, 56, 0.42);
+  display: grid;
+  place-items: center;
+  z-index: 60;
+}
+
+.pickerDialog {
+  width: min(720px, 92vw);
+  max-height: 80vh;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pickerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.pickerHeader h3 {
+  margin: 0;
+}
+
+.pickerCloseButton {
+  border: 0;
+  background: transparent;
+  color: var(--primary-strong);
+  font-weight: 700;
+}
+
+.pickerField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pickerField span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.pickerField input {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 10px 12px;
+  color: var(--text);
+}
+
+.pickerField input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(92, 108, 255, 0.14);
+}
+
+.pickerList {
+  border: 1px solid var(--border);
+  max-height: 52vh;
+  overflow: auto;
+}
+
+.pickerRow {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+  text-align: left;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+  align-items: center;
+}
+
+.pickerRow:hover {
+  background: rgba(92, 108, 255, 0.08);
+}
+
+.pickerRowActive {
+  background: rgba(92, 108, 255, 0.14);
+  box-shadow: inset 3px 0 0 #5c6cff;
+}
+
+.pickerEmpty {
+  margin: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  padding: 20px;
+  text-align: center;
+}
+
+.pickerEmpty p {
+  color: var(--muted);
+}
+
+.messageOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(18, 24, 56, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.messageDialog {
+  width: min(460px, 92vw);
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  background: #fff;
+  box-shadow: var(--shadow);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.messageTitle {
+  margin: 0;
+  color: #b42318;
+  font-size: 1rem;
+}
+
+.messageText {
+  margin: 10px 0 0;
+  color: var(--text);
+}
+
+.messageActions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .pickerRow {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Combobox (Typeahead) cell ─────────────────────────────── */
+
+.comboboxCell {
+  position: relative;
+  width: 100%;
+}
+
+/* Stretch the rbt root to fill the cell */
+.comboboxCell :global(.rbt) {
+  width: 100%;
+}
+
+/* Input wrapper – remove extra height Bootstrap adds */
+.comboboxCell :global(.rbt-input-wrapper) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* Style the Typeahead input to match every other grid cell */
+.comboboxCell :global(.rbt-input-main) {
+  width: 100%;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  padding: 9px 10px !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  line-height: inherit !important;
+  height: auto !important;
+}
+
+.comboboxCell :global(.rbt-input-main:focus) {
+  outline: 2px solid rgba(92, 108, 255, 0.32) !important;
+  outline-offset: -2px !important;
+  background: #f9faff !important;
+  box-shadow: none !important;
+}
+
+/* Dropdown menu – stack items vertically without Bootstrap */
+.comboboxCell :global(.rbt-menu) {
+  display: flex !important;
+  flex-direction: column !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 4px 0 !important;
+  background: #fff !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 4px !important;
+  box-shadow: var(--shadow) !important;
+  z-index: 9999 !important;
+  min-width: 100% !important;
+  max-height: 240px !important;
+  overflow-y: auto !important;
+}
+
+/* Each option row */
+.comboboxCell :global(.rbt-menu .dropdown-item) {
+  display: block !important;
+  width: 100% !important;
+  padding: 8px 12px !important;
+  text-align: left !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  cursor: pointer !important;
+  color: var(--text) !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.comboboxCell :global(.rbt-menu .dropdown-item:last-child) {
+  border-bottom: 0 !important;
+}
+
+.comboboxCell :global(.rbt-menu .dropdown-item:hover),
+.comboboxCell :global(.rbt-menu .dropdown-item:focus) {
+  background: rgba(92, 108, 255, 0.08) !important;
+  outline: none !important;
+}
+
+.comboboxCell :global(.rbt-menu .dropdown-item.active),
+.comboboxCell :global(.rbt-menu .dropdown-item:active) {
+  background: rgba(92, 108, 255, 0.14) !important;
+  box-shadow: inset 3px 0 0 var(--primary) !important;
+  color: var(--text) !important;
+}
+
+/* Highlighted matched text inside items */
+.comboboxCell :global(.rbt-highlight-text) {
+  font-weight: 700;
+  background: transparent;
+  padding: 0;
+  color: var(--primary-strong);
+}
+
+/* Clear (×) button */
+.comboboxCell :global(.rbt-close) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: 0 !important;
+  cursor: pointer !important;
+  padding: 0 8px !important;
+  color: var(--muted) !important;
+  font-size: 1.1rem !important;
+  line-height: 1 !important;
+}
+
+.comboboxCell :global(.rbt-close:hover) {
+  color: var(--danger) !important;
+}
+
+/* Aux (clear button) container sits inline with the input */
+.comboboxCell :global(.rbt-aux) {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+

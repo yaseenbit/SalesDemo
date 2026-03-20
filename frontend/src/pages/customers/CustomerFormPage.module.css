@@ -1,0 +1,17 @@
+.formCard {
+  margin-top: 14px;
+}
+
+.actions {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .actions {
+    flex-wrap: wrap;
+  }
+}
+
