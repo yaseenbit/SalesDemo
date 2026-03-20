@@ -1,3 +1,62 @@
+.orderDetailsCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.orderDetailsCompact :global(.field) {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.orderDetailsCompact :global(.field span) {
+  font-size: 0.86rem;
+}
+
+.orderDetailsCompact :global(.field input),
+.orderDetailsCompact :global(.field select) {
+  padding: 6px 10px;
+  min-height: 34px;
+  font-size: 0.9rem;
+}
+
+.detailsLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+  gap: 16px;
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.customerField,
+.phoneField,
+.addressField,
+.orderNumberField,
+.orderDateField {
+  width: 100%;
+}
+
+.searchFieldShell {
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.searchFieldShell :global(input) {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+.readOnlyInput {
+  background: #f8f9ff;
+}
+
 .doneOverlay {
   position: fixed;
   inset: 0;
@@ -32,5 +91,15 @@
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .detailsLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .orderDetailsCompact :global(.field) {
+    grid-template-columns: 105px minmax(0, 1fr);
+  }
 }
 

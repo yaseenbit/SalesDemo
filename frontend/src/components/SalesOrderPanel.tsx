@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { productCatalog, brandCatalog } from '../data/catalog';
-import type { Customer, OrderStatus, SalesOrderDraft, SalesOrderItem } from '../types';
+import type { SalesOrderDraft, SalesOrderItem } from '../types';
 import {
   EditableGridTable,
   type EditableGridCellKeyDownHandler,
@@ -9,7 +9,6 @@ import {
 import styles from './SalesOrderPanel.module.css';
 
 interface SalesOrderPanelProps {
-  customers: Customer[];
   draft: SalesOrderDraft;
   onDraftChange: (draft: SalesOrderDraft) => void;
   itemsAdded?: () => void;
@@ -101,7 +100,7 @@ const isItemEmpty = (item: SalesOrderItem | undefined) => {
   );
 };
 
-export const SalesOrderPanel = ({ customers, draft, onDraftChange, itemsAdded }: SalesOrderPanelProps) => {
+export const SalesOrderPanel = ({ draft, onDraftChange, itemsAdded }: SalesOrderPanelProps) => {
   const [pickerTriggerColumn, setPickerTriggerColumn] = useState<PickerTriggerColumnKey>('description');
 
   const isDeleteRowShortcut = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -436,18 +435,9 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange, itemsAdded }:
     ];
   }, [itemsAdded, pickerTriggerColumn]);
 
-  const handleHeaderChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = event.target;
-    onDraftChange({
-      ...draft,
-      [name]: value,
-    });
-  };
-
   const subtotal = draft.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
   const discountTotal = draft.items.reduce((sum, item) => sum + item.discount, 0);
   const total = Math.max(subtotal - discountTotal, 0);
-  const selectedCustomer = customers.find((customer) => customer.id === draft.customerId);
 
   return (
     <section className="panel panel--stretch">
@@ -459,7 +449,6 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange, itemsAdded }:
 
       <div className={styles.orderShell}>
         <div className="order-main">
-        
 
           <div className={styles.lineItems}>
             <div className="line-items__header">
@@ -503,20 +492,6 @@ export const SalesOrderPanel = ({ customers, draft, onDraftChange, itemsAdded }:
         </div>
 
         <aside className="order-summary">
-          <div className="summary-card">
-            <p className="eyebrow">Customer snapshot</p>
-            {selectedCustomer ? (
-              <>
-                <h3>{selectedCustomer.company}</h3>
-                <p>{selectedCustomer.name}</p>
-                <p>{selectedCustomer.email}</p>
-                <p>{selectedCustomer.phone}</p>
-                <p>{selectedCustomer.address}</p>
-              </>
-            ) : (
-              <p>Select a customer to attach shipping and contact details.</p>
-            )}
-          </div>
 
           <div className="summary-card summary-card--totals">
             <p className="eyebrow">Order totals</p>
