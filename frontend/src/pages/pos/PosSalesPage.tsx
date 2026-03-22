@@ -59,6 +59,7 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
   const [searchPopup, setSearchPopup] = useState<SearchPopupState | null>(null);
   const [selectedRowIndex, setSelectedRowIndex] = useState(-1);
   const [cartEdit, setCartEdit] = useState<CartEditState | null>(null);
+  const [receiptPrintedAt, setReceiptPrintedAt] = useState(() => new Date().toISOString());
   const scannerInputRef = useRef<HTMLInputElement>(null);
   const popupSearchInputRef = useRef<HTMLInputElement>(null);
   const pendingPriceInputRef = useRef<HTMLInputElement>(null);
@@ -142,6 +143,10 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
   const subtotal = draft.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
   const discountTotal = draft.items.reduce((sum, item) => sum + item.discount, 0);
   const total = Math.max(subtotal - discountTotal, 0);
+
+  const formatReceiptDate = (isoDate: string) => {
+    return new Date(isoDate).toLocaleString();
+  };
 
   function findMatchingProducts(query: string) {
     const normalizedQuery = query.trim().toLowerCase();
@@ -442,10 +447,7 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
       return;
     }
 
-    setLastScannedBarcode(normalizedBarcode);
-    addScannedItem(normalizedBarcode, undefined, quantityToAdd, overrideUnitPrice);
-    setBarcode('');
-    resetPendingAddValues();
+    setScanNote('Item not found.');
     closeSearchPopup();
     focusScannerInput();
   };
@@ -476,6 +478,31 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
     setBarcode('');
     resetPendingAddValues();
     focusScannerInput();
+  };
+
+  const printReceipt = () => {
+    if (draft.items.length === 0) {
+      setScanNote('Cannot print receipt. Cart is empty.');
+      return;
+    }
+
+    const printClassName = 'thermal-receipt-print';
+    const printedAt = new Date().toISOString();
+    setReceiptPrintedAt(printedAt);
+
+    const cleanup = () => {
+      document.body.classList.remove(printClassName);
+      window.removeEventListener('afterprint', cleanup);
+    };
+
+    document.body.classList.add(printClassName);
+    window.addEventListener('afterprint', cleanup);
+
+    window.requestAnimationFrame(() => {
+      window.print();
+      // Fallback when afterprint is unreliable.
+      window.setTimeout(cleanup, 1200);
+    });
   };
 
   return (
@@ -815,9 +842,75 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
               <span>Payable</span>
               <strong>{toCurrency(total)}</strong>
             </div>
+            <div className={styles.posReceiptActionRow}>
+              <button
+                className="button"
+                type="button"
+                onClick={printReceipt}
+                disabled={draft.items.length === 0}
+              >
+                Print receipt
+              </button>
+            </div>
           </div>
         </aside>
       </div>
+
+      <section className={styles.receiptPrintArea} aria-hidden="true">
+        <article className={styles.receiptPaper}>
+          <header className={styles.receiptHeader}>
+            <h3>SALES RECEIPT</h3>
+            <p>{draft.orderNumber || `POS-${receiptPrintedAt.slice(0, 10).replace(/-/g, '')}`}</p>
+            <p>{formatReceiptDate(receiptPrintedAt)}</p>
+          </header>
+
+          <div className={styles.receiptMeta}>
+            <p>Customer: {selectedCustomer?.name || 'Walk-in customer'}</p>
+            {selectedCustomer?.phone ? <p>Phone: {selectedCustomer.phone}</p> : null}
+          </div>
+
+          <div className={styles.receiptDivider} />
+
+          <div className={styles.receiptTableHeader}>
+            <span>Item</span>
+            <span>Qty</span>
+            <span>Amount</span>
+          </div>
+
+          {draft.items.map((item) => {
+            const lineTotal = Math.max(item.quantity * item.unitPrice - item.discount, 0);
+
+            return (
+              <div key={`receipt-${item.id}`} className={styles.receiptRow}>
+                <span>{item.description}</span>
+                <span>{item.quantity}</span>
+                <span>{toCurrency(lineTotal)}</span>
+              </div>
+            );
+          })}
+
+          <div className={styles.receiptDivider} />
+
+          <div className={styles.receiptTotals}>
+            <p>
+              <span>Subtotal</span>
+              <strong>{toCurrency(subtotal)}</strong>
+            </p>
+            <p>
+              <span>Discount</span>
+              <strong>-{toCurrency(discountTotal)}</strong>
+            </p>
+            <p className={styles.receiptGrandTotal}>
+              <span>Total</span>
+              <strong>{toCurrency(total)}</strong>
+            </p>
+          </div>
+
+          <footer className={styles.receiptFooter}>
+            <p>Thank you for shopping with us</p>
+          </footer>
+        </article>
+      </section>
 
       {searchPopup ? (
         <div className={styles.posSearchPopupOverlay} role="presentation" onClick={closeSearchPopup}>

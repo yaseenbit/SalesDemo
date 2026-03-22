@@ -194,13 +194,12 @@
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   padding-right: 4px;
 }
 
 .posItemRow {
   border: 1px solid var(--border);
-  padding: 12px;
+  padding: 6px;
   background: #ffffff;
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) auto auto;
@@ -216,6 +215,7 @@
 .posItemRowSelected {
   border-color: rgba(23, 181, 190, 0.7);
   box-shadow: 0 0 0 3px rgba(23, 181, 190, 0.12);
+  background: rgba(23, 181, 190, 0.08);
 }
 
 .posItemCore {
@@ -342,6 +342,130 @@
   position: sticky;
   top: 18px;
   align-self: start;
+}
+
+.posReceiptActionRow {
+  margin-top: 12px;
+}
+
+.posReceiptActionRow :global(.button) {
+  width: 100%;
+}
+
+.receiptPrintArea {
+  display: none;
+}
+
+.receiptPaper {
+  width: 80mm;
+  max-width: 80mm;
+  background: #fff;
+  color: #111;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 8px;
+}
+
+.receiptHeader {
+  text-align: center;
+}
+
+.receiptHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+
+.receiptHeader p {
+  margin: 2px 0 0;
+}
+
+.receiptMeta {
+  margin-top: 8px;
+}
+
+.receiptMeta p {
+  margin: 2px 0;
+}
+
+.receiptDivider {
+  border-top: 1px dashed #333;
+  margin: 8px 0;
+}
+
+.receiptTableHeader,
+.receiptRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px 70px;
+  gap: 8px;
+  align-items: start;
+}
+
+.receiptTableHeader {
+  font-weight: 700;
+}
+
+.receiptTableHeader span:nth-child(2),
+.receiptTableHeader span:nth-child(3),
+.receiptRow span:nth-child(2),
+.receiptRow span:nth-child(3) {
+  text-align: right;
+}
+
+.receiptTotals p {
+  margin: 4px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.receiptGrandTotal {
+  font-size: 14px;
+}
+
+.receiptFooter {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.receiptFooter p {
+  margin: 0;
+}
+
+:global(body.thermal-receipt-print) {
+  margin: 0;
+  background: #fff;
+}
+
+:global(body.thermal-receipt-print) .receiptPrintArea,
+:global(body.thermal-receipt-print) .receiptPrintArea * {
+  visibility: visible;
+}
+
+:global(body.thermal-receipt-print) .receiptPrintArea {
+  display: block;
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  z-index: 9999;
+}
+
+:global(body.thermal-receipt-print) .receiptPaper {
+  margin: 0 auto;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  :global(body.thermal-receipt-print) .posShell,
+  :global(body.thermal-receipt-print) .panel__header,
+  :global(body.thermal-receipt-print) .posSearchPopupOverlay {
+    display: none !important;
+  }
 }
 
 @media (max-width: 1180px) {
