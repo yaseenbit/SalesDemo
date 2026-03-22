@@ -126,6 +126,12 @@ export const SalesOrderPanel = ({draft, onDraftChange, itemsAdded, gridFocusRequ
         updateItems(draft.items.filter((item) => item.id !== itemId));
     };
 
+    const getItemPopupColumnIndex = (gridColumns: EditableGridColumn<SalesOrderItem>[]) => {
+        return gridColumns.findIndex(
+            (column) => column.kind === 'popup' && 'popup' in column && column.popup.title === popupConfig.title,
+        );
+    };
+
     const handleGridCellKeyDown: EditableGridCellKeyDownHandler<SalesOrderItem> = (context) => {
         if (!isDeleteRowShortcut(context.event)) {
             return undefined;
@@ -205,8 +211,20 @@ export const SalesOrderPanel = ({draft, onDraftChange, itemsAdded, gridFocusRequ
                     placeholder: 'SKU-0001',
                     getValue: (row) => row.sku,
                     onValueChange: (row, nextValue) => ({...row, sku: nextValue.trim().toUpperCase()}),
-                    allowedCharacters: /[\d+\-]/,
                     onCellKeyDown: (context) => {
+                        if (context.event.key === 'F2') {
+                            const itemPopupColumnIndex = getItemPopupColumnIndex(context.columns);
+
+                            if (itemPopupColumnIndex >= 0) {
+                                return {
+                                    type: 'openPopup' as const,
+                                    rowIndex: context.rowIndex,
+                                    columnIndex: itemPopupColumnIndex,
+                                    initialFilter: context.row.sku.trim(),
+                                };
+                            }
+                        }
+
                         if (context.event.key === 'Enter') {
                             const rawInput = context.row.sku.trim();
 
@@ -249,10 +267,27 @@ export const SalesOrderPanel = ({draft, onDraftChange, itemsAdded, gridFocusRequ
                                 return {type: 'stay'};
                             }
 
-                            // Search catalog by barcode (SKU)
-                            const matchedProduct = productCatalog.find(
-                                (product) => product.barcode.toLowerCase() === context.row.sku.toLowerCase(),
+                            const loweredInput = rawInput.toLowerCase();
+                            const matchedProducts = productCatalog.filter(
+                                (product) =>
+                                    product.barcode.toLowerCase().includes(loweredInput) ||
+                                    product.name.toLowerCase().includes(loweredInput),
                             );
+
+                            if (matchedProducts.length > 1) {
+                                const itemPopupColumnIndex = getItemPopupColumnIndex(context.columns);
+                                if (itemPopupColumnIndex >= 0) {
+                                    return {
+                                        type: 'openPopup' as const,
+                                        rowIndex: context.rowIndex,
+                                        columnIndex: itemPopupColumnIndex,
+                                        initialFilter: rawInput,
+                                    };
+                                }
+                            }
+
+                            // Search catalog by barcode (SKU)
+                            const matchedProduct = matchedProducts.length === 1 ? matchedProducts[0] : undefined;
 
                             if (matchedProduct) {
                                 // ── Duplicate detection ───────────────────────────────────────

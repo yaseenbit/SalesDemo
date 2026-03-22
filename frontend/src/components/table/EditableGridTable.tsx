@@ -9,6 +9,7 @@ export type CellMoveAction =
   | { type: 'move'; rowDelta: number; colDelta: number }
   | { type: 'focus'; rowIndex: number; columnIndex: number }
   | { type: 'focusAfterChange'; rowIndex: number; columnIndex: number }
+  | { type: 'openPopup'; rowIndex: number; columnIndex: number; initialFilter?: string }
   | {
       type: 'showMessage';
       title?: string;
@@ -411,7 +412,7 @@ export const EditableGridTable = <TRow extends object>({
     messageCloseButtonRef.current?.focus();
   }, [messageDialogState]);
 
-  const openPopup = (rowIndex: number, columnIndex: number) => {
+  const openPopup = (rowIndex: number, columnIndex: number, initialFilter = '') => {
     if (popupState && popupState.rowIndex === rowIndex && popupState.columnIndex === columnIndex) {
       return;
     }
@@ -421,11 +422,19 @@ export const EditableGridTable = <TRow extends object>({
       return;
     }
 
+    const normalizedFilter = initialFilter.trim().toLowerCase();
+    const exactMatchIndex = normalizedFilter
+      ? column.popup.options.findIndex((option) => {
+          const optionId = getOptionText(getPopupFieldValue(option, column.popup.optionIdKey));
+          return optionId.toLowerCase() === normalizedFilter;
+        })
+      : -1;
+
     setPopupState({
       rowIndex,
       columnIndex,
-      filter: '',
-      activeIndex: 0,
+      filter: initialFilter,
+      activeIndex: exactMatchIndex >= 0 ? exactMatchIndex : 0,
     });
   };
 
@@ -523,6 +532,11 @@ export const EditableGridTable = <TRow extends object>({
 
     if (action.type === 'focus') {
       focusCell(action.rowIndex, action.columnIndex);
+      return;
+    }
+
+    if (action.type === 'openPopup') {
+      openPopup(action.rowIndex, action.columnIndex, action.initialFilter ?? '');
       return;
     }
 

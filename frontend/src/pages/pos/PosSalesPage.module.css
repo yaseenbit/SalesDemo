@@ -9,6 +9,10 @@
   min-width: 0;
 }
 
+.posScanArea {
+  margin-bottom: 14px;
+}
+
 .posScanForm {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -27,7 +31,137 @@
 }
 
 .posScanNote {
-  margin: 10px 0 14px;
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.posPreAddControls {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 220px));
+  gap: 10px;
+}
+
+.posSelectedItemPreview {
+  border: 1px solid var(--border);
+  background: #f8f9ff;
+  padding: 10px 12px;
+}
+
+.posSelectedItemPreview strong {
+  display: block;
+}
+
+.posSelectedItemPreview p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.posSearchPopupOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(18, 24, 56, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.posSearchPopupDialog {
+  width: min(720px, 92vw);
+  max-height: 80vh;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.posSearchPopupHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.posSearchPopupHeader h3 {
+  margin: 0;
+}
+
+.posSearchPopupCloseButton {
+  border: 0;
+  background: transparent;
+  color: var(--primary-strong);
+  font-weight: 700;
+}
+
+.posSearchPopupField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.posSearchPopupField span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.posSearchPopupField input {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 10px 12px;
+  color: var(--text);
+}
+
+.posSearchPopupField input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(92, 108, 255, 0.14);
+}
+
+.posSearchPopupList {
+  border: 1px solid var(--border);
+  max-height: 52vh;
+  overflow: auto;
+}
+
+.posSearchPopupRow {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+  text-align: left;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: center;
+}
+
+.posSearchPopupRow:hover {
+  background: rgba(92, 108, 255, 0.08);
+}
+
+.posSearchPopupRowActive {
+  background: rgba(92, 108, 255, 0.14);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.posSearchPopupEmpty {
+  margin: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  padding: 20px;
+  text-align: center;
+}
+
+.posSearchPopupEmpty p {
   color: var(--muted);
 }
 
@@ -79,8 +213,26 @@
   box-shadow: 0 0 0 3px rgba(92, 108, 255, 0.12);
 }
 
+.posItemRowSelected {
+  border-color: rgba(23, 181, 190, 0.7);
+  box-shadow: 0 0 0 3px rgba(23, 181, 190, 0.12);
+}
+
 .posItemCore {
   min-width: 0;
+}
+
+.posEditingBadge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(92, 108, 255, 0.35);
+  background: rgba(92, 108, 255, 0.1);
+  color: var(--primary-strong);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 6px;
 }
 
 .posItemCore strong {
@@ -106,6 +258,31 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.posInlineEditField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.posInlineEditField span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.posInlineEditInput {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 6px 8px;
+  color: var(--text);
+}
+
+.posInlineEditInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(92, 108, 255, 0.14);
 }
 
 .posItemActions :global(.button--secondary) {
@@ -180,6 +357,14 @@
 
 @media (max-width: 900px) {
   .posScanForm {
+    grid-template-columns: 1fr;
+  }
+
+  .posPreAddControls {
+    grid-template-columns: 1fr;
+  }
+
+  .posSearchPopupRow {
     grid-template-columns: 1fr;
   }
 
