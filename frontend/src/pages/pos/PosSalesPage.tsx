@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Customer, SalesOrderDraft, SalesOrderItem } from '../../types';
 import { productCatalog, type CatalogItem } from '../../data/catalog';
+import { Icon } from 'semantic-ui-react';
 import styles from './PosSalesPage.module.css';
 
 interface PosSalesPageProps {
@@ -507,13 +508,79 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
 
   return (
     <section className="panel panel--stretch page-section">
-      <div className="panel__header">
-        <div>
-          <p className="eyebrow">POS mode</p>
-          <h2>Fast scanning checkout</h2>
-          <p className="lead-text">Scan barcode and press Enter. Re-scanning the same code increases quantity instantly.</p>
+      <div className={styles.posToolbar}>
+        <span className={styles.posToolbarTitle}>POS Screen</span>
+        <div className={styles.posToolbarActions}>
+          <button
+            className={`${styles.posToolbarBtn} ${styles.posToolbarBtnAdd}`}
+            type="button"
+            title="Add item"
+            onClick={() => {
+              setBarcode('');
+              focusScannerInput();
+            }}
+          >
+            <Icon name="plus circle" />
+            Add
+          </button>
+          <button
+            className={`${styles.posToolbarBtn} ${styles.posToolbarBtnSearch}`}
+            type="button"
+            title="Search items"
+            onClick={() => openSearchPopup('', productCatalog)}
+          >
+            <Icon name="search" />
+            Search
+          </button>
+          <button
+            className={`${styles.posToolbarBtn} ${styles.posToolbarBtnSave}`}
+            type="button"
+            title="Save POS bill"
+            disabled={draft.items.length === 0}
+            onClick={() => {
+              setScanNote(`Bill saved with ${draft.items.length} item(s). Total: ${toCurrency(total)}.`);
+              focusScannerInput();
+            }}
+          >
+            <Icon name="save" />
+            Save
+          </button>
+          <button
+            className={`${styles.posToolbarBtn} ${styles.posToolbarBtnRefresh}`}
+            type="button"
+            title="Refresh / clear cart"
+            onClick={() => {
+              onDraftChange({ ...draft, items: [] });
+              setBarcode('');
+              setCartEdit(null);
+              setSelectedRowIndex(-1);
+              setScanNote('Cart cleared. Scanner ready.');
+              focusScannerInput();
+            }}
+          >
+            <Icon name="refresh" />
+            Refresh
+          </button>
+          <button
+            className={`${styles.posToolbarBtn} ${styles.posToolbarBtnPrint}`}
+            type="button"
+            title="Print receipt"
+            disabled={draft.items.length === 0}
+            onClick={printReceipt}
+          >
+            <Icon name="print" />
+            Print
+          </button>
+          <button
+            className={`${styles.posToolbarBtn} ${styles.posToolbarBtnExit}`}
+            type="button"
+            title="Exit POS"
+            onClick={() => window.history.back()}
+          >
+            <Icon name="sign-out" />
+            Exit
+          </button>
         </div>
-        <span className="pill">Optimized for keyboard barcode scanners</span>
       </div>
 
       <div className={styles.posShell}>
