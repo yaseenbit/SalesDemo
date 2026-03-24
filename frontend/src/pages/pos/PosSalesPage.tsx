@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Customer, SalesOrderDraft, SalesOrderItem } from '../../types';
-import { productCatalog, type CatalogItem } from '../../data/catalog';
+import { fetchProductCatalog, productCatalog, type CatalogItem } from '../../data/catalog';
+import { saveInvoice, getAllInvoices, searchInvoices, type SavedInvoice } from '../../services/invoiceDb';
 import { Icon } from 'semantic-ui-react';
 import styles from './PosSalesPage.module.css';
 
@@ -13,14 +14,12 @@ interface PosSalesPageProps {
 
 const toCurrency = (amount: number) => `$${amount.toFixed(2)}`;
 
-const buildCatalogIndex = () => {
-  return productCatalog.reduce<Record<string, { name: string; unitPrice: number }>>((index, item) => {
+const buildCatalogIndex = (items: CatalogItem[]) => {
+  return items.reduce<Record<string, { name: string; unitPrice: number }>>((index, item) => {
     index[item.barcode] = { name: item.name, unitPrice: item.unitPrice };
     return index;
   }, {});
 };
-
-const catalogIndex = buildCatalogIndex();
 
 type SearchPopupState = {
   query: string;
@@ -34,7 +33,7 @@ type CartEditState = {
 };
 
 const posConfig = {
-  allowPreAddAdjustments: false,
+  allowPreAddAdjustments: true,
 };
 
 const sanitizePriceInput = (value: string) => {
@@ -51,6 +50,8 @@ const sanitizePriceInput = (value: string) => {
 const sanitizeQuantityInput = (value: string) => value.replace(/[^0-9]/g, '');
 
 export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPageProps) => {
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(true);
   const [barcode, setBarcode] = useState('');
   const [pendingUnitPrice, setPendingUnitPrice] = useState('');
   const [pendingQuantity, setPendingQuantity] = useState('1');
@@ -61,6 +62,10 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
   const [selectedRowIndex, setSelectedRowIndex] = useState(-1);
   const [cartEdit, setCartEdit] = useState<CartEditState | null>(null);
   const [receiptPrintedAt, setReceiptPrintedAt] = useState(() => new Date().toISOString());
+  const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
+  const [isFindModalOpen, setIsFindModalOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState('');
+  const [savedInvoices, setSavedInvoices] = useState<SavedInvoice[]>([]);
   const scannerInputRef = useRef<HTMLInputElement>(null);
   const popupSearchInputRef = useRef<HTMLInputElement>(null);
   const pendingPriceInputRef = useRef<HTMLInputElement>(null);
@@ -70,8 +75,41 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
   const lastFocusedCartEditItemIdRef = useRef<string | null>(null);
   const itemRowRefs = useRef<Map<string, HTMLElement>>(new Map());
 
+  const catalogIndex = useMemo(() => buildCatalogIndex(catalogItems), [catalogItems]);
+
   useEffect(() => {
     scannerInputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    setScanNote('Loading items...');
+    setIsCatalogLoading(true);
+
+    fetchProductCatalog()
+      .then((items) => {
+        if (!isActive) {
+          return;
+        }
+
+        setCatalogItems(items);
+        setIsCatalogLoading(false);
+        setScanNote(`Scanner ready. ${items.length} items loaded.`);
+      })
+      .catch(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setCatalogItems([]);
+        setIsCatalogLoading(false);
+        setScanNote('Failed to load items.');
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -153,10 +191,10 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
     const normalizedQuery = query.trim().toLowerCase();
 
     if (!normalizedQuery) {
-      return [] as CatalogItem[];
+      return catalogItems;
     }
 
-    return productCatalog.filter(
+    return catalogItems.filter(
       (product) =>
         product.barcode.toLowerCase().includes(normalizedQuery) || product.name.toLowerCase().includes(normalizedQuery),
     );
@@ -363,7 +401,7 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
       return;
     }
 
-    const catalogItem = matchedCatalogItem ?? productCatalog.find((item) => item.barcode === normalizedBarcode);
+    const catalogItem = matchedCatalogItem ?? catalogItems.find((item) => item.barcode === normalizedBarcode);
     const catalogEntry = catalogItem ?? catalogIndex[normalizedBarcode];
     const newItem: SalesOrderItem = {
       id: crypto.randomUUID(),
@@ -411,6 +449,11 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
     if (!normalizedBarcode) {
       setScanNote('Scan skipped: barcode was empty.');
       scannerInputRef.current?.focus();
+      return;
+    }
+
+    if (isCatalogLoading) {
+      setScanNote('Please wait. Items are still loading...');
       return;
     }
 
@@ -506,6 +549,81 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
     });
   };
 
+  const saveAndClearInvoice = async () => {
+    if (draft.items.length === 0) {
+      setScanNote('Cannot save. Cart is empty.');
+      return;
+    }
+
+    try {
+      const saveResult = await saveInvoice(draft, activeInvoiceId ?? undefined);
+      setScanNote(
+        saveResult.isUpdate
+          ? `Invoice ${saveResult.invoice.id} updated successfully. Cart cleared for next transaction.`
+          : `Invoice ${saveResult.invoice.id} saved successfully. Cart cleared for next transaction.`,
+      );
+      
+      onDraftChange({
+        orderNumber: '',
+        orderDate: new Date().toISOString().slice(0, 10),
+        deliveryDate: '',
+        customerId: draft.customerId,
+        status: 'Draft' as const,
+        notes: '',
+        items: [],
+      });
+
+      setBarcode('');
+      setCartEdit(null);
+      setSelectedRowIndex(-1);
+      setPendingSelectedItem(null);
+      setActiveInvoiceId(null);
+      setReceiptPrintedAt(new Date().toISOString());
+      focusScannerInput();
+    } catch (error) {
+      console.error('Failed to save invoice:', error);
+      setScanNote('Error saving invoice. Please try again.');
+    }
+  };
+
+  const openFindModal = async () => {
+    setIsFindModalOpen(true);
+    try {
+      const invoices = await getAllInvoices();
+      setSavedInvoices(invoices);
+      setFindQuery('');
+    } catch (error) {
+      console.error('Failed to load invoices:', error);
+      setScanNote('Error loading saved invoices.');
+    }
+  };
+
+  const handleFindSearch = async (query: string) => {
+    setFindQuery(query);
+    try {
+      const results = await searchInvoices(query);
+      setSavedInvoices(results);
+    } catch (error) {
+      console.error('Failed to search invoices:', error);
+    }
+  };
+
+  const restoreInvoice = (invoice: SavedInvoice) => {
+    onDraftChange({
+      orderNumber: invoice.orderNumber,
+      orderDate: invoice.orderDate,
+      deliveryDate: invoice.deliveryDate,
+      customerId: invoice.customerId,
+      status: invoice.status,
+      notes: invoice.notes,
+      items: invoice.items,
+    });
+    setActiveInvoiceId(invoice.id);
+    setIsFindModalOpen(false);
+    setScanNote(`Restored invoice ${invoice.id}. Ready to continue editing.`);
+    focusScannerInput();
+  };
+
   return (
     <section className="panel panel--stretch page-section">
       <div className={styles.posToolbar}>
@@ -527,7 +645,8 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
             className={`${styles.posToolbarBtn} ${styles.posToolbarBtnSearch}`}
             type="button"
             title="Search items"
-            onClick={() => openSearchPopup('', productCatalog)}
+            disabled={isCatalogLoading}
+            onClick={() => openSearchPopup('', catalogItems)}
           >
             <Icon name="search" />
             Search
@@ -537,13 +656,19 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
             type="button"
             title="Save POS bill"
             disabled={draft.items.length === 0}
-            onClick={() => {
-              setScanNote(`Bill saved with ${draft.items.length} item(s). Total: ${toCurrency(total)}.`);
-              focusScannerInput();
-            }}
+            onClick={saveAndClearInvoice}
           >
             <Icon name="save" />
             Save
+          </button>
+          <button
+            className={`${styles.posToolbarBtn} ${styles.posToolbarBtnSearch}`}
+            type="button"
+            title="Find saved invoices"
+            onClick={openFindModal}
+          >
+            <Icon name="folder open" />
+            Find
           </button>
           <button
             className={`${styles.posToolbarBtn} ${styles.posToolbarBtnRefresh}`}
@@ -601,6 +726,17 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
                     closeSearchPopup();
                   }}
                   onKeyDown={(event) => {
+                    if (event.key === ' ') {
+                      event.preventDefault();
+                      if (isCatalogLoading) {
+                        setScanNote('Please wait. Items are still loading...');
+                        return;
+                      }
+                      const popupQuery = barcode.trim();
+                      openSearchPopup(popupQuery, popupQuery ? findMatchingProducts(popupQuery) : catalogItems);
+                      return;
+                    }
+
                     if (event.key === 'Enter') {
                       if (selectedRowIndex < 0 || selectedRowIndex >= draft.items.length) {
                         return;
@@ -724,31 +860,25 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
 
           </div>
 
-          <div className={styles.posItemsArea}>
-            <div className={styles.posItemsHeader}>
-              <h3>Order items</h3>
-              <p>{draft.items.length} unique items in cart</p>
-            </div>
+          <div className={styles.posItemList} role="list" aria-label="Scanned order items">
+            {draft.items.map((item, itemIndex) => {
+              const lineTotal = Math.max(item.quantity * item.unitPrice - item.discount, 0);
+              const isRecent = item.sku === lastScannedBarcode;
+              const isEditingRow = cartEdit?.itemId === item.id;
 
-            <div className={styles.posItemList} role="list" aria-label="Scanned order items">
-              {draft.items.map((item, itemIndex) => {
-                const lineTotal = Math.max(item.quantity * item.unitPrice - item.discount, 0);
-                const isRecent = item.sku === lastScannedBarcode;
-                const isEditingRow = cartEdit?.itemId === item.id;
-
-                return (
+              return (
                   <article
-                    className={`${styles.posItemRow} ${isRecent ? styles.posItemRowRecent : ''} ${selectedRowIndex === itemIndex ? styles.posItemRowSelected : ''}`}
-                    key={item.id}
-                    role="listitem"
-                    aria-selected={selectedRowIndex === itemIndex}
-                    ref={(element) => {
-                      if (element) {
-                        itemRowRefs.current.set(item.id, element);
-                      } else {
-                        itemRowRefs.current.delete(item.id);
-                      }
-                    }}
+                      className={`${styles.posItemRow} ${isRecent ? styles.posItemRowRecent : ''} ${selectedRowIndex === itemIndex ? styles.posItemRowSelected : ''}`}
+                      key={item.id}
+                      role="listitem"
+                      aria-selected={selectedRowIndex === itemIndex}
+                      ref={(element) => {
+                        if (element) {
+                          itemRowRefs.current.set(item.id, element);
+                        } else {
+                          itemRowRefs.current.delete(item.id);
+                        }
+                      }}
                   >
                     <div className={styles.posItemCore}>
                       {isEditingRow ? <span className={styles.posEditingBadge}>Editing</span> : null}
@@ -757,109 +887,109 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
                     </div>
                     <div className={styles.posItemPricing}>
                       {isEditingRow ? (
-                        <label className={styles.posInlineEditField}>
-                          <span>Price</span>
-                          <input
-                            ref={cartEditPriceInputRef}
-                            className={styles.posInlineEditInput}
-                            type="text"
-                            inputMode="decimal"
-                            value={cartEdit?.price ?? ''}
-                            onChange={(event) =>
-                              setCartEdit((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      price: sanitizePriceInput(event.target.value),
-                                    }
-                                  : current,
-                              )
-                            }
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter') {
-                                event.preventDefault();
-                                cartEditQuantityInputRef.current?.focus();
-                                cartEditQuantityInputRef.current?.select();
-                                return;
-                              }
+                          <label className={styles.posInlineEditField}>
+                            <span>Price</span>
+                            <input
+                                ref={cartEditPriceInputRef}
+                                className={styles.posInlineEditInput}
+                                type="text"
+                                inputMode="decimal"
+                                value={cartEdit?.price ?? ''}
+                                onChange={(event) =>
+                                    setCartEdit((current) =>
+                                        current
+                                            ? {
+                                              ...current,
+                                              price: sanitizePriceInput(event.target.value),
+                                            }
+                                            : current,
+                                    )
+                                }
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    cartEditQuantityInputRef.current?.focus();
+                                    cartEditQuantityInputRef.current?.select();
+                                    return;
+                                  }
 
-                              if (event.key === 'Escape') {
-                                event.preventDefault();
-                                setCartEdit(null);
-                                setSelectedRowIndex(-1);
-                                focusScannerInput();
-                              }
-                            }}
-                          />
-                        </label>
+                                  if (event.key === 'Escape') {
+                                    event.preventDefault();
+                                    setCartEdit(null);
+                                    setSelectedRowIndex(-1);
+                                    focusScannerInput();
+                                  }
+                                }}
+                            />
+                          </label>
                       ) : (
-                        <span>{toCurrency(item.unitPrice)} each</span>
+                          <span>{toCurrency(item.unitPrice)} each</span>
                       )}
                       <strong>{toCurrency(lineTotal)}</strong>
                     </div>
                     <div className={styles.posItemActions}>
                       {isEditingRow ? (
-                        <label className={styles.posInlineEditField}>
-                          <span>Qty</span>
-                          <input
-                            ref={cartEditQuantityInputRef}
-                            className={styles.posInlineEditInput}
-                            type="text"
-                            inputMode="numeric"
-                            value={cartEdit?.quantity ?? ''}
-                            onChange={(event) =>
-                              setCartEdit((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      quantity: sanitizeQuantityInput(event.target.value),
-                                    }
-                                  : current,
-                              )
-                            }
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter') {
-                                event.preventDefault();
-                                saveCartEditorChanges();
-                                return;
-                              }
+                          <label className={styles.posInlineEditField}>
+                            <span>Qty</span>
+                            <input
+                                ref={cartEditQuantityInputRef}
+                                className={styles.posInlineEditInput}
+                                type="text"
+                                inputMode="numeric"
+                                value={cartEdit?.quantity ?? ''}
+                                onChange={(event) =>
+                                    setCartEdit((current) =>
+                                        current
+                                            ? {
+                                              ...current,
+                                              quantity: sanitizeQuantityInput(event.target.value),
+                                            }
+                                            : current,
+                                    )
+                                }
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    saveCartEditorChanges();
+                                    return;
+                                  }
 
-                              if (event.key === 'Escape') {
-                                event.preventDefault();
-                                setCartEdit(null);
-                                setSelectedRowIndex(-1);
-                                focusScannerInput();
-                              }
-                            }}
-                          />
-                        </label>
+                                  if (event.key === 'Escape') {
+                                    event.preventDefault();
+                                    setCartEdit(null);
+                                    setSelectedRowIndex(-1);
+                                    focusScannerInput();
+                                  }
+                                }}
+                            />
+                          </label>
                       ) : (
-                        <>
-                          <button className="button button--secondary" type="button" onClick={() => updateItemQuantity(item.id, -1)}>
-                            -
-                          </button>
-                          <span className={styles.posQty}>{item.quantity}</span>
-                          <button className="button button--secondary" type="button" onClick={() => updateItemQuantity(item.id, 1)}>
-                            +
-                          </button>
-                          <button className="icon-button" type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.description}`}>
-                            x
-                          </button>
-                        </>
+                          <>
+                            <button className="button button--secondary" type="button" onClick={() => updateItemQuantity(item.id, -1)}>
+                              -
+                            </button>
+                            <span className={styles.posQty}>{item.quantity}</span>
+                            <button className="button button--secondary" type="button" onClick={() => updateItemQuantity(item.id, 1)}>
+                              +
+                            </button>
+                            <button className="icon-button" type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.description}`}>
+                              x
+                            </button>
+                          </>
                       )}
                     </div>
                   </article>
-                );
-              })}
+              );
+            })}
 
-              {draft.items.length === 0 && (
+            {draft.items.length === 0 && (
                 <article className={`empty-state ${styles.posEmpty}`}>
                   <strong>Cart is empty</strong>
                   <p>Start scanning products to fill this large order area quickly.</p>
                 </article>
-              )}
-            </div>
+            )}
           </div>
+          
 
           {/*<div className={styles.posQuickCatalog}>*/}
           {/*  <h3>Quick add</h3>*/}
@@ -1083,6 +1213,61 @@ export const PosSalesPage = ({ customers, draft, onDraftChange }: PosSalesPagePr
                   <p>Try another barcode or product name.</p>
                 </div>
               ) : null}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {isFindModalOpen ? (
+        <div className={styles.posFindModalOverlay} role="presentation" onClick={() => setIsFindModalOpen(false)}>
+          <section
+            className={styles.posFindModalDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Find saved invoices"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.posFindModalHeader}>
+              <h3>Saved Invoices</h3>
+              <button className={styles.posFindModalCloseButton} type="button" onClick={() => setIsFindModalOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <label className={styles.posFindModalSearchField}>
+              <span>Search invoices</span>
+              <input
+                type="text"
+                value={findQuery}
+                onChange={(event) => handleFindSearch(event.target.value)}
+                placeholder="Search by ID, Order #, or Date"
+              />
+            </label>
+
+            <div className={styles.posFindModalList}>
+              {savedInvoices.length === 0 ? (
+                <div className={styles.posFindModalEmpty}>
+                  <p>No saved invoices found.</p>
+                </div>
+              ) : (
+                savedInvoices.map((invoice) => (
+                  <button
+                    key={invoice.id}
+                    type="button"
+                    className={styles.posFindModalRow}
+                    onClick={() => restoreInvoice(invoice)}
+                  >
+                    <div className={styles.posFindModalRowContent}>
+                      <strong>{invoice.id}</strong>
+                      <span className={styles.posFindModalRowMeta}>
+                        Order: {invoice.orderNumber || 'N/A'} | Items: {invoice.items.length} | Saved:{' '}
+                        {new Date(invoice.savedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <Icon name="arrow right" />
+                  </button>
+                ))
+              )}
             </div>
           </section>
         </div>

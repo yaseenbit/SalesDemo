@@ -299,6 +299,123 @@
   color: var(--muted);
 }
 
+.posFindModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(18, 24, 56, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.posFindModalDialog {
+  width: min(720px, 92vw);
+  max-height: 80vh;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.posFindModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.posFindModalHeader h3 {
+  margin: 0;
+}
+
+.posFindModalCloseButton {
+  border: 0;
+  background: transparent;
+  color: var(--primary-strong);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.posFindModalSearchField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.posFindModalSearchField span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.posFindModalSearchField input {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 10px 12px;
+  color: var(--text);
+}
+
+.posFindModalSearchField input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(92, 108, 255, 0.14);
+}
+
+.posFindModalList {
+  border: 1px solid var(--border);
+  max-height: 52vh;
+  overflow: auto;
+}
+
+.posFindModalRow {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.posFindModalRow:hover {
+  background: rgba(92, 108, 255, 0.08);
+}
+
+.posFindModalRowContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.posFindModalRowContent strong {
+  color: var(--text);
+}
+
+.posFindModalRowMeta {
+  color: var(--muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.posFindModalEmpty {
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
 .posItemsArea {
   border: 1px solid var(--border);
   padding: 14px;
