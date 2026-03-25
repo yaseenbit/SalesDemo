@@ -8,8 +8,10 @@ export interface ProductFormValues {
   name: string;
   barcode: string;
   category: ProductCategory;
+  description: string;
   unitPrice: string;
   stockQuantity: string;
+  reorderLevel: string;
 }
 
 interface ProductFormDialogProps {
@@ -21,6 +23,7 @@ interface ProductFormDialogProps {
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onValueChange: (value: ProductFormValues) => void;
+  onGenerateBarcode?: () => void;
 }
 
 export const ProductFormDialog = ({
@@ -32,6 +35,7 @@ export const ProductFormDialog = ({
   onClose,
   onSubmit,
   onValueChange,
+  onGenerateBarcode,
 }: ProductFormDialogProps) => {
   if (!isOpen) {
     return null;
@@ -78,12 +82,19 @@ export const ProductFormDialog = ({
 
             <label className="field">
               <span>Barcode</span>
-              <NumericTextBox
-                value={value.barcode}
-                onValueChange={(barcode) => updateField('barcode', barcode)}
-                placeholder="Numeric barcode"
-                required
-              />
+              <div className={styles.barcodeFieldRow}>
+                <NumericTextBox
+                  value={value.barcode}
+                  onValueChange={(barcode) => updateField('barcode', barcode)}
+                  placeholder="Numeric barcode"
+                  required
+                />
+                {onGenerateBarcode ? (
+                  <button className="button button--secondary" type="button" onClick={onGenerateBarcode}>
+                    Generate
+                  </button>
+                ) : null}
+              </div>
             </label>
 
             <label className="field">
@@ -118,6 +129,26 @@ export const ProductFormDialog = ({
                 onValueChange={(stockQuantity) => updateField('stockQuantity', stockQuantity)}
                 placeholder="0"
                 required
+              />
+            </label>
+
+            <label className="field">
+              <span>Reorder level</span>
+              <NumericTextBox
+                value={value.reorderLevel}
+                onValueChange={(reorderLevel) => updateField('reorderLevel', reorderLevel)}
+                placeholder="0"
+                required
+              />
+            </label>
+
+            <label className="field field--full">
+              <span>Description</span>
+              <textarea
+                rows={4}
+                value={value.description}
+                onChange={(event) => updateField('description', event.target.value)}
+                placeholder="Add a short product description"
               />
             </label>
           </div>

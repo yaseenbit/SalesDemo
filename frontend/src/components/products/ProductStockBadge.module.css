@@ -1,0 +1,26 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.inStock {
+  background: rgba(23, 181, 100, 0.16);
+  color: #0f7a46;
+}
+
+.lowStock {
+  background: rgba(255, 165, 0, 0.18);
+  color: #aa6800;
+}
+
+.outOfStock {
+  background: rgba(209, 74, 105, 0.14);
+  color: #ac2b4b;
+}
+

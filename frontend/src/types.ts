@@ -51,12 +51,15 @@ export interface Product {
   barcode: string;
   name: string;
   category: ProductCategory;
+  description: string;
   unitPrice: number;
   stockQuantity: number;
+  reorderLevel: number;
   createdAt: string;
+  archivedAt: string | null;
 }
 
-export type NewProductInput = Omit<Product, 'id' | 'createdAt'>;
+export type NewProductInput = Omit<Product, 'id' | 'createdAt' | 'archivedAt'>;
 
 export type Page =
   | 'dashboard'

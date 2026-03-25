@@ -9,6 +9,7 @@ import { CustomerListPage } from './pages/customers/CustomerListPage';
 import { SalesOrdersPage } from './pages/orders/SalesOrdersPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { PosSalesPage } from './pages/pos/PosSalesPage';
+import { ProductDetailPage } from './pages/products/ProductDetailPage';
 import { ProductListPage } from './pages/products/ProductListPage';
 import { TableControlDemoPage } from './pages/TableControlDemoPage';
 import type { Customer, SalesOrderDraft } from './types';
@@ -70,6 +71,10 @@ function App() {
         <Route
           path="products"
           element={<ProductListPage />}
+        />
+        <Route
+          path="products/:productId"
+          element={<ProductDetailPage />}
         />
         <Route
           path="orders"

@@ -10,13 +10,12 @@
 .customer-list-card,
 .line-item-row,
 .empty-state {
-  border: 1px solid var(--border);
   background: var(--panel);
   box-shadow: var(--shadow-soft);
 }
 
 .panel {
-  padding: 10px;
+  padding: 0px;
 }
 
 .panel--stretch {
