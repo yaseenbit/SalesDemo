@@ -2,10 +2,23 @@
   margin-top: 14px;
 }
 
+.numericDemoGrid {
+  margin-bottom: 18px;
+  align-items: end;
+}
+
 .helpText {
   margin: 0;
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+.valuePreview {
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--text);
 }
 
 .controlsRow {

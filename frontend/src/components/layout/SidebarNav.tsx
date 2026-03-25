@@ -16,6 +16,11 @@ const navGroups = [
     ],
   },
   {
+    id: 'inventory',
+    label: 'Inventory',
+    items: [{ to: '/products', label: 'Products' }],
+  },
+  {
     id: 'sales',
     label: 'Sales',
     items: [
@@ -35,6 +40,7 @@ export const SidebarNav = ({ isOpen }: SidebarNavProps) => {
   const location = useLocation();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     workspace: true,
+    inventory: true,
     sales: true,
   });
 

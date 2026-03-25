@@ -36,6 +36,28 @@ export interface SalesOrder {
 
 export type SalesOrderDraft = Omit<SalesOrder, 'id'>;
 
+export type ProductCategory =
+  | 'Accessories'
+  | 'Audio'
+  | 'Cables'
+  | 'Displays'
+  | 'Networking'
+  | 'Office'
+  | 'Peripherals'
+  | 'Storage';
+
+export interface Product {
+  id: string;
+  barcode: string;
+  name: string;
+  category: ProductCategory;
+  unitPrice: number;
+  stockQuantity: number;
+  createdAt: string;
+}
+
+export type NewProductInput = Omit<Product, 'id' | 'createdAt'>;
+
 export type Page =
   | 'dashboard'
   | 'customers'

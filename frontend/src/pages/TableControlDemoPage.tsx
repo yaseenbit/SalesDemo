@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { NumericTextBox } from '../components/NumericTextBox';
 import { EditableGridTable, type EditableGridColumn } from '../components/table/EditableGridTable';
 import { SearchableTable, type SearchableTableColumn } from '../components/SearchableTable';
 import { productCatalog } from '../data/catalog';
@@ -71,6 +72,8 @@ const isDemoRowEmpty = (row: DemoRow) => {
 export const TableControlDemoPage = () => {
   const [rows, setRows] = useState<DemoRow[]>(initialRows);
   const [triggerColumn, setTriggerColumn] = useState<TriggerColumnKey>('description');
+  const [wholeNumberValue, setWholeNumberValue] = useState('1250');
+  const [decimalValue, setDecimalValue] = useState('249.99');
 
   const largeProductCatalog = useMemo(() => {
     return Array.from({ length: 1000 }, (_, index) => {
@@ -188,6 +191,28 @@ export const TableControlDemoPage = () => {
       </div>
 
       <div className={`form-card ${styles.tableCard}`}>
+        <div className={`form-grid form-grid--three ${styles.numericDemoGrid}`}>
+          <label className="field field--compact">
+            <span>Whole number only</span>
+            <NumericTextBox value={wholeNumberValue} onValueChange={setWholeNumberValue} placeholder="0" />
+          </label>
+          <label className="field field--compact">
+            <span>Decimal enabled</span>
+            <NumericTextBox
+              value={decimalValue}
+              allowDecimal
+              onValueChange={setDecimalValue}
+              placeholder="0.00"
+            />
+          </label>
+          <div className="field">
+            <span>Current values</span>
+            <p className={styles.valuePreview}>
+              Integer: <strong>{wholeNumberValue || 'empty'}</strong> · Decimal: <strong>{decimalValue || 'empty'}</strong>
+            </p>
+          </div>
+        </div>
+
         <div className={styles.controlsRow}>
           <label className="field">
             <span>Popup trigger column</span>

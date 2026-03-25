@@ -9,6 +9,7 @@ import { CustomerListPage } from './pages/customers/CustomerListPage';
 import { SalesOrdersPage } from './pages/orders/SalesOrdersPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { PosSalesPage } from './pages/pos/PosSalesPage';
+import { ProductListPage } from './pages/products/ProductListPage';
 import { TableControlDemoPage } from './pages/TableControlDemoPage';
 import type { Customer, SalesOrderDraft } from './types';
 
@@ -65,6 +66,10 @@ function App() {
         <Route
           path="customers/:customerId/edit"
           element={<CustomerFormPage customers={orderedCustomers} onSaveCustomer={handleSaveCustomer} />}
+        />
+        <Route
+          path="products"
+          element={<ProductListPage />}
         />
         <Route
           path="orders"

@@ -20,31 +20,34 @@ interface ElectronStore {
  * const prefs = await getStoreValue('user-preferences');
  */
 export const useElectronStore = () => {
-  const isElectron = typeof window !== 'undefined' && window.electronAPI?.store;
+  const isElectron = typeof window !== 'undefined' && window.electronAPI?.store !== undefined;
 
   const getStoreValue = useCallback(async (key: string) => {
-    if (!isElectron) {
+    const store = window.electronAPI?.store;
+    if (!store) {
       console.warn('useElectronStore: Not running in Electron environment');
       return null;
     }
-    return window.electronAPI.store.get(key);
-  }, [isElectron]);
+    return store.get(key);
+  }, []);
 
   const setStoreValue = useCallback(async (key: string, value: unknown) => {
-    if (!isElectron) {
+    const store = window.electronAPI?.store;
+    if (!store) {
       console.warn('useElectronStore: Not running in Electron environment');
       return;
     }
-    await window.electronAPI.store.set(key, value);
-  }, [isElectron]);
+    await store.set(key, value);
+  }, []);
 
   const deleteStoreValue = useCallback(async (key: string) => {
-    if (!isElectron) {
+    const store = window.electronAPI?.store;
+    if (!store) {
       console.warn('useElectronStore: Not running in Electron environment');
       return;
     }
-    await window.electronAPI.store.delete(key);
-  }, [isElectron]);
+    await store.delete(key);
+  }, []);
 
   return {
     getStoreValue,
